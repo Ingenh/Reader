@@ -2687,8 +2687,19 @@ function edit(id){
   save();render();
  };
  
- const rs=(fid,name,prevId)=>{$(fid).onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);const b64 = c.toDataURL("image/jpeg",.8);$("#f").elements[name].value=b64;if(prevId)$(prevId).innerHTML=`<small style="display:block;color:var(--mut)">Eigen afbeelding ingesteld.</small>`;if(!isNew && name==='coverImg'){$("#dlg-cv-img").src=b64;$("#dlg-cv-img").style.display='block';}};im.src=URL.createObjectURL(f)}};
- rs("#fs","spineImg");rs("#fc","coverImg","#cprev");
+const uploadCoverToStorage = async (blob, slotName) => {
+  if (!sb || !currentUser) return null;
+  const path = `${currentUser.id}/${uid()}-${slotName}.jpg`;
+  const { error } = await sb.storage.from("book-covers").upload(path, blob, {
+    contentType: "image/jpeg",
+    upsert: false
+  });
+  if (error) throw error;
+  const { data } = sb.storage.from("book-covers").getPublicUrl(path);
+  return data?.publicUrl || null;
+};
+
+const rs=(fid,name,prevId)=>{$(fid).onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);const b64=c.toDataURL("image/jpeg",.8);const applyUrl=val=>{$("#f").elements[name].value=val;if(prevId)$(prevId).innerHTML=`<small style="display:block;color:var(--mut)">Eigen afbeelding ingesteld.</small>`;if(!isNew && name==='coverImg'){$("#dlg-cv-img").src=val;$("#dlg-cv-img").style.display='block';}};c.toBlob(async blob=>{if(blob&&sb&&currentUser){try{const url=await uploadCoverToStorage(blob,name);if(url){applyUrl(url);toast("Afbeelding opgeslagen in Storage");return;}}catch(err){console.error("Storage upload mislukt:",err);}}applyUrl(b64);},"image/jpeg",.8);};im.src=URL.createObjectURL(f)}};
  $("#dlg").showModal()}
 
 const K=["title","author","series","num","status","format","pages","rating","finished","price","notes"];
