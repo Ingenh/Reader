@@ -1,0 +1,2740 @@
+<!DOCTYPE html>
+<html lang="nl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#68002C">
+<title>Leeshoek – boekentracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--bg:#68002C;--card:#520023;--ink:#FFF8D5;--mut:#E098AC;--acc:#E098AC;--on:#441910;--acc2:#A6C9DD;--line:#8c2a52;--plank:#441910;--kast:#3b0019;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+:root[data-theme="forest"]{--bg:#243326;--card:#1B271D;--ink:#FBF4E4;--mut:#C9B28B;--acc:#D8935B;--on:#23160C;--acc2:#95C2A2;--line:#3B513E;--plank:#4A311E;--kast:#151F17}
+:root[data-theme="night"]{--bg:#121726;--card:#1B2236;--ink:#F2F5FF;--mut:#9BA8C7;--acc:#9AB3E8;--on:#0E1525;--acc2:#E3A4BD;--line:#2E3856;--plank:#262C3D;--kast:#0B0F1A}
+
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "Bricolage Grotesque",system-ui,sans-serif;transition:background .25s, color .25s}
+#wrap{display:flex;align-items:flex-start;max-width:1360px;margin:auto}
+#col{flex:1;min-width:0;padding-top:12px;}
+header{padding:16px 20px;max-width:1120px;margin:auto}
+
+/* Topbar met Gebruikersprofiel knop rechtsboven */
+#topbar{max-width:1120px;margin:0 auto;padding:4px 20px 0;display:flex;justify-content:flex-end;align-items:center;gap:10px}
+.sync-pill{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--mut);opacity:.85;display:inline-flex;align-items:center;gap:6px}
+.sync-pill i{width:7px;height:7px;border-radius:50%;display:inline-block;background:#38D399}
+.sync-pill.syncing i{background:#F5B041;animation:pulse 1s infinite}
+.sync-pill.error i{background:#FF5C5C}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.profile-btn{display:inline-flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 14px 5px 6px;color:var(--ink);cursor:pointer;font-weight:600;font-size:15px;box-shadow:0 4px 16px rgba(0,0,0,.25);transition:background .15s, border-color .15s, transform .15s}
+.profile-btn:hover{border-color:var(--acc);transform:translateY(-1px)}
+.pb-av-wrap{position:relative;width:34px;height:34px;flex:none}
+.pb-av{width:34px;height:34px;border-radius:50%;border:2px solid var(--acc);background:var(--kast);color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;overflow:hidden;background-size:cover;background-position:center}
+.pb-dot{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:#38D399;border:2px solid var(--card)}
+.pb-dot.syncing{background:#F5B041}
+.pb-dot.error{background:#FF5C5C}
+.pb-chev{width:15px;height:15px;stroke:var(--mut);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+#side{position:sticky;top:12px;margin:16px 0 0 16px;width:180px;flex:none;background:var(--card);border-radius:14px;padding:8px;display:flex;flex-direction:column;gap:4px;transition:width .2s}
+#side button{display:flex;align-items:center;gap:10px;border:0;background:none;padding:8px 10px;border-radius:10px;cursor:pointer;text-align:left;white-space:nowrap;overflow:hidden;width:100%;color:#FFFFFF}
+#side button:hover{background:var(--bg)}
+#side nav{display:flex;flex-direction:column;gap:4px}
+#side nav button.on{background:var(--acc);color:var(--on)}
+#side nav button.on svg{stroke:var(--on)}
+#side .ic{width:20px;text-align:center;flex:none;display:inline-flex;align-items:center;justify-content:center}
+#side .ic svg{width:20px;height:20px;stroke:#FFFFFF;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#side.min{width:52px}
+#side.min .tx{display:none}
+#tog .ic{transition:transform .2s}
+#side:not(.min) #tog .ic{transform:rotate(180deg)}
+@media(max-width:600px){#side{position:fixed;left:8px;top:8px;margin:0;z-index:5;box-shadow:0 4px 20px rgba(0,0,0,.25)}#col{padding-left:60px}}
+h1{font-size:28px;font-weight:800;margin:0;letter-spacing:-.5px}
+button,select,input,textarea{font:inherit;color:inherit}
+main{max-width:1120px;margin:auto;padding:0 20px 60px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 20px}
+.bar input,.bar select{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.btn{background:var(--acc);color:var(--on);border:0;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[role="button"]:focus-visible{outline:3px solid var(--acc2);outline-offset:2px}
+
+/* Boekenkast Styling */
+.bookcase {
+  background-color: var(--kast);
+  background-image: 
+    linear-gradient(90deg, rgba(0,0,0,0.3) 0%, transparent 5%, transparent 95%, rgba(0,0,0,0.3) 100%),
+    repeating-linear-gradient(0deg, transparent, transparent 150px, rgba(0,0,0,0.08) 150px, rgba(0,0,0,0.08) 152px);
+  border: 12px solid var(--kast);
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.25), inset 0 0 50px rgba(0,0,0,0.4);
+  padding: 16px 12px 0 12px;
+  margin-bottom: 32px;
+}
+
+.shelf{display:flex;align-items:flex-end;gap:3px;flex-wrap:nowrap;overflow-x:auto;padding:18px 12px 0;min-height:208px;border-bottom:16px solid var(--plank);margin-bottom:24px;position:relative;box-shadow: inset 0 -10px 10px -5px rgba(0,0,0,0.3);transition:background .15s, outline .15s}
+.shelf.is-empty{min-height:84px;align-items:center;justify-content:center;padding:12px}
+.shelf-empty{font-size:13px;color:var(--mut);opacity:.65;pointer-events:none;font-family:ui-monospace,Menlo,monospace}
+.shelf::after {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+}
+
+/* 3D Boekenruggen (Spines) */
+.spine {
+  flex: none; border: 0; border-radius: 3px 3px 0 0; cursor: grab; color: #fff;
+  writing-mode: vertical-rl; font-size: 13px; font-weight: 600; width: 38px;
+  overflow: hidden; transition: transform .15s, box-shadow .15s, opacity .15s;
+  box-shadow: inset 4px 0 8px rgba(255,255,255,0.25), inset -8px 0 12px rgba(0,0,0,0.4), -2px 0 5px rgba(0,0,0,0.4);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  user-select: none; -webkit-user-select: none;
+}
+.spine:active { cursor: grabbing; }
+.spine:not(.img) {
+  display: flex; justify-content: space-between; align-items: center; padding: 12px 4px;
+}
+.spine:hover, .spine:focus-visible { transform: translateY(-14px); }
+.spine.img {
+  background-size: cover; background-position: center; text-indent: -999px; color: transparent;
+  display: block; padding: 0;
+}
+.sp-title {
+  white-space: normal; line-height: 1.15; overflow: hidden; width: 100%; text-align: left;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex-shrink: 1;
+}
+.sp-author {
+  white-space: normal; line-height: 1.15; font-weight: 400; font-size: 11px; opacity: 0.85; overflow: hidden;
+  width: 100%; text-align: right; margin-top: 8px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; flex-shrink: 0;
+}
+
+/* Geselecteerd boek op plank */
+.spine.selected, .cover.selected, .flat-book.selected {
+  outline: 2px solid var(--acc);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+/* Cover / Face out op plank */
+.cover{flex:none;width:105px;height:158px;border:0;border-radius:3px 6px 6px 3px;cursor:grab;color:#fff;padding:10px 8px;text-align:left;font-weight:600;font-size:13px;line-height:1.2;display:flex;flex-direction:column;justify-content:space-between;box-shadow:inset 6px 0 rgba(0,0,0,.25), 0 4px 10px rgba(0,0,0,.4);transition:transform .15s, box-shadow .15s, opacity .15s;text-shadow:0 1px 3px rgba(0,0,0,.6);user-select:none;-webkit-user-select:none}
+.cover:active{cursor:grabbing}
+.cover small{font-weight:400;opacity:.85}
+.cover:hover,.cover:focus-visible{transform:translateY(-14px)}
+
+/* Platliggende boeken (Lay it flat & stapelen) */
+.flat-stack {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  flex: none;
+  margin: 0 4px;
+  gap: 1px;
+}
+.flat-book {
+  flex: none;
+  border: 0;
+  border-radius: 3px;
+  cursor: grab;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: 8px;
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+  box-shadow: inset 0 4px 6px rgba(255,255,255,0.22), inset 0 -6px 8px rgba(0,0,0,0.4), 0 2px 5px rgba(0,0,0,0.45);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  white-space: nowrap;
+  user-select: none; -webkit-user-select: none;
+}
+.flat-book:active { cursor: grabbing; }
+.flat-book:hover, .flat-book:focus-visible { transform: translateX(4px); }
+.flat-book .fb-title { overflow: hidden; text-overflow: ellipsis; }
+.flat-book .fb-author { font-weight: 400; font-size: 10px; opacity: 0.85; flex-shrink: 0; }
+.flat-book.img {
+  background-size: cover;
+  background-position: center;
+  color: transparent;
+  text-shadow: none;
+}
+
+/* Drag & Drop Visuele Feedback */
+.dragging { opacity: 0.35 !important; transform: scale(0.95) !important; }
+body.is-dragging .spine:hover,
+body.is-dragging .cover:hover,
+body.is-dragging .flat-book:hover { transform: none; }
+
+.drop-before { box-shadow: -5px 0 0 0 var(--acc2), 0 0 14px rgba(166,201,221,0.55) !important; z-index: 4; }
+.drop-after  { box-shadow:  5px 0 0 0 var(--acc2), 0 0 14px rgba(166,201,221,0.55) !important; z-index: 4; }
+.drop-top    { box-shadow: 0 -5px 0 0 var(--acc2), 0 0 14px rgba(166,201,221,0.55) !important; z-index: 4; }
+.drop-bottom { box-shadow: 0  5px 0 0 var(--acc2), 0 0 14px rgba(166,201,221,0.55) !important; z-index: 4; }
+
+.shelf.drop-over {
+  background: rgba(166, 201, 221, 0.14);
+  outline: 2px dashed var(--acc2);
+  outline-offset: -4px;
+}
+body.is-dragging [data-drop-status] {
+  border-style: dashed !important;
+  border-color: var(--acc2) !important;
+  transition: transform .15s, background .15s, color .15s;
+}
+[data-drop-status].drop-over {
+  background: var(--acc2) !important;
+  color: var(--on) !important;
+  border-style: solid !important;
+  border-color: var(--acc2) !important;
+  transform: scale(1.06);
+}
+[data-drop-status].drop-over .mono { color: var(--on) !important; }
+
+.drag-hint {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  color: var(--mut);
+  opacity: 0.85;
+  margin: -8px 0 14px;
+}
+
+/* Planken + Spotlight split layout */
+.shelf-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 20px;
+  align-items: start;
+}
+@media(max-width: 960px) {
+  .shelf-split { grid-template-columns: 1fr; }
+}
+
+/* Spotlight Paneel */
+.spotlight-panel {
+  position: sticky;
+  top: 16px;
+  background: #231419;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 20px 20px 26px;
+  text-align: center;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.45);
+}
+.spot-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 0;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.spot-close:hover { background: rgba(255,255,255,0.2); }
+
+.spot-stage {
+  position: relative;
+  padding-top: 42px;
+  padding-bottom: 14px;
+  margin: -20px -20px 16px;
+  background: linear-gradient(180deg, #1b0f13 0%, #231419 100%);
+  border-bottom: 8px solid #352019;
+  overflow: hidden;
+}
+.spot-lamp {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 26px;
+  background: linear-gradient(180deg, #f3e9dc 0%, #d8c8b8 100%);
+  border-radius: 28px 28px 6px 6px;
+  box-shadow: 0 6px 18px rgba(255, 232, 180, 0.45);
+  z-index: 3;
+}
+.spot-lamp::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 10px;
+  height: 12px;
+  background: #8c624d;
+  border-radius: 4px 4px 0 0;
+}
+.spot-beam {
+  position: absolute;
+  top: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  height: 250px;
+  background: linear-gradient(180deg, rgba(255, 235, 195, 0.28) 0%, rgba(255, 235, 195, 0.08) 65%, rgba(255, 235, 195, 0) 100%);
+  clip-path: polygon(38% 0%, 62% 0%, 100% 100%, 0% 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.spot-cover {
+  position: relative;
+  z-index: 2;
+  width: 142px;
+  height: 214px;
+  margin: 0 auto;
+  border-radius: 4px 8px 8px 4px;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.65), inset 5px 0 rgba(0,0,0,0.22);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 12px;
+  text-align: left;
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.spot-kicker {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--mut);
+  margin: 0 0 6px;
+}
+.spot-title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: #fff;
+}
+.spot-author {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: rgba(255,248,213,0.75);
+}
+.spot-stars {
+  font-size: 15px;
+  letter-spacing: 3px;
+  margin-bottom: 18px;
+  color: rgba(255,255,255,0.25);
+}
+.spot-stars span { color: var(--acc); }
+
+.spot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.spot-btn {
+  border-radius: 999px;
+  padding: 9px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.22);
+  background: transparent;
+  color: #fff;
+  transition: background .15s, border-color .15s, color .15s;
+}
+.spot-btn:hover { background: rgba(255,255,255,0.08); }
+.spot-btn.primary {
+  background: var(--acc);
+  color: var(--on);
+  border-color: var(--acc);
+}
+.spot-btn.primary:hover { filter: brightness(1.06); }
+.spot-btn.active {
+  background: rgba(224, 152, 172, 0.22);
+  border-color: var(--acc);
+  color: var(--acc);
+}
+
+/* Spine Size Modal */
+dialog.spine-dlg {
+  width: min(560px, 94vw);
+  background: #FFF9F2;
+  color: #2B171D;
+  border-radius: 22px;
+  padding: 22px 24px 24px;
+  overflow: visible;
+}
+.sp-dlg-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.sp-dlg-kicker {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: #8c2a52;
+  margin: 0;
+}
+.sp-dlg-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 0;
+  background: rgba(43, 23, 29, 0.12);
+  color: #2B171D;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sp-dlg-close:hover { background: rgba(43, 23, 29, 0.22); }
+.sp-preview {
+  background: #1B0F14;
+  border-radius: 12px;
+  border-bottom: 12px solid #2C1814;
+  height: 225px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  padding: 16px 12px 0;
+  margin-bottom: 22px;
+  overflow: hidden;
+}
+.sp-preview .spine { cursor: default; }
+.sp-preview .spine:hover { transform: none; }
+.sp-preview .spine.target {
+  outline: 2.5px solid #F2A8BD;
+  outline-offset: 0px;
+  z-index: 3;
+}
+.sp-ctrl { margin-bottom: 18px; }
+.sp-ctrl-lbl {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 13px;
+  color: #5A454B;
+  margin-bottom: 8px;
+}
+.sp-range {
+  width: 100%;
+  accent-color: #C95B82;
+  cursor: pointer;
+  height: 6px;
+}
+.sp-dlg-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 22px;
+}
+.sp-btn-reset {
+  border-radius: 999px;
+  padding: 12px 16px;
+  border: 1.5px solid #2B171D;
+  background: transparent;
+  color: #2B171D;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sp-btn-done {
+  border-radius: 999px;
+  padding: 12px 16px;
+  border: 0;
+  background: #F2A8BD;
+  color: #2B171D;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Account & Instellingen Dialog */
+dialog.acc-dlg {
+  width: min(860px, 95vw);
+  max-height: 90vh;
+  padding: 0;
+  border-radius: 22px;
+  background: #48051E;
+  color: #FFF8F0;
+  overflow: hidden;
+  box-shadow: 0 28px 70px rgba(0,0,0,0.6);
+}
+:root[data-theme="forest"] dialog.acc-dlg { background: #18241A; }
+:root[data-theme="night"] dialog.acc-dlg { background: #141A2C; }
+dialog.acc-dlg::backdrop { background: rgba(12, 4, 8, 0.72); backdrop-filter: blur(4px); }
+
+.acc-shell {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+.acc-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px 12px;
+}
+.acc-head h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  color: #FFF8EE;
+  flex: 1;
+  text-align: center;
+  padding-left: 34px;
+}
+.acc-x {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  border: 0;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.acc-x:hover { background: rgba(255,255,255,0.2); }
+
+.acc-grid {
+  display: grid;
+  grid-template-columns: 205px 1fr;
+  gap: 16px;
+  padding: 4px 18px 18px;
+  overflow: hidden;
+  flex: 1;
+  min-height: 0;
+}
+@media(max-width: 720px) {
+  .acc-grid { grid-template-columns: 1fr; gap: 10px; overflow-y: auto; }
+  .acc-nav { flex-direction: row !important; overflow-x: auto; padding-bottom: 4px; }
+  .acc-nav button { white-space: nowrap; flex: none; }
+}
+
+.acc-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+.acc-nav button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: rgba(255,248,238,0.85);
+  padding: 10px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: left;
+  transition: background .15s, color .15s;
+}
+.acc-nav button:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.acc-nav button.on { background: rgba(255,255,255,0.16); color: #fff; }
+.acc-nav svg {
+  width: 18px; height: 18px; stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none;
+}
+
+.acc-card {
+  background: #FFF8EE;
+  color: #2B171D;
+  border-radius: 18px;
+  padding: 22px 24px;
+  overflow-y: auto;
+  max-height: calc(90vh - 84px);
+}
+.acc-card h3 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2B171D;
+}
+.acc-sec-title {
+  margin: 18px 0 8px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #2B171D;
+}
+.acc-lbl {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5E434B;
+}
+.acc-card input[type="text"],
+.acc-card input[type="email"],
+.acc-card input[type="password"],
+.acc-card input[type="number"],
+.acc-card input[type="url"],
+.acc-card select {
+  width: 100%;
+  background: #FFFDF9;
+  color: #2B171D;
+  border: 1.5px solid #D8C5B8;
+  border-radius: 999px;
+  padding: 9px 14px;
+  font-size: 14px;
+}
+.acc-card input:focus, .acc-card select:focus {
+  outline: none;
+  border-color: #B44B73;
+  box-shadow: 0 0 0 3px rgba(224,152,172,0.35);
+}
+
+.acc-prof-box {
+  background: #FBF1E3;
+  border: 1px solid #EFE0CC;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.acc-av-wrap { position: relative; width: 64px; height: 64px; flex: none; }
+.acc-av {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 3px solid #E598B1;
+  background: #520023; color: #FFF8D5;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800;
+  background-size: cover; background-position: center;
+}
+.acc-av-dot {
+  position: absolute; right: 1px; bottom: 1px;
+  width: 14px; height: 14px; border-radius: 50%;
+  background: #38D399; border: 2.5px solid #FBF1E3;
+}
+.acc-prof-info { flex: 1; min-width: 170px; }
+.acc-prof-name { font-size: 17px; font-weight: 800; color: #2B171D; line-height: 1.25; }
+.acc-prof-name span { font-weight: 500; color: #6E5058; font-size: 14px; }
+.acc-badge {
+  display: inline-block;
+  margin: 4px 0 3px;
+  background: #E99BB3;
+  color: #3D121F;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.acc-prof-meta { font-size: 13px; color: #6E5058; }
+
+.acc-pill-out {
+  border: 1.5px solid #5E434B;
+  background: #FFFDF9;
+  color: #2B171D;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.acc-pill-out:hover { background: #F5E8D8; }
+
+.acc-inline-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.acc-inline-row > *:first-child { flex: 1; }
+.acc-link {
+  border: 0; background: none; color: #68002C;
+  font-size: 13px; font-weight: 700; text-decoration: underline;
+  cursor: pointer; padding: 4px 2px; white-space: nowrap;
+}
+
+.acc-pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #EFE0CC;
+}
+.acc-pref-row:last-of-type { border-bottom: 0; }
+.acc-pref-row label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 14px;
+  color: #2B171D;
+  font-weight: 500;
+  cursor: pointer;
+}
+.acc-pref-row select { width: auto; min-width: 165px; padding: 6px 12px; }
+.acc-chk { width: 17px !important; height: 17px; accent-color: #8C2A52; cursor: pointer; flex: none; }
+
+.acc-toggle {
+  border-radius: 999px;
+  border: 1.5px solid #5E434B;
+  background: #FFFDF9;
+  color: #2B171D;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 78px;
+}
+.acc-toggle.on {
+  background: #E99BB3;
+  border-color: #C95B82;
+  color: #3D121F;
+}
+
+/* Thema Swatches */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 8px;
+}
+@media(max-width: 500px) { .theme-grid { grid-template-columns: 1fr; } }
+.theme-opt {
+  border: 2px solid transparent;
+  background: #FBF1E3;
+  border-radius: 14px;
+  padding: 8px;
+  cursor: pointer;
+  text-align: center;
+  color: #2B171D;
+  transition: border-color .15s, transform .15s;
+}
+.theme-opt:hover { transform: translateY(-2px); }
+.theme-opt.on { border-color: #8C2A52; background: #F5E6D3; }
+.theme-sw {
+  display: flex;
+  height: 28px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1.5px solid rgba(43,23,29,0.2);
+  margin-bottom: 6px;
+}
+.theme-sw i { flex: 1; display: block; }
+.theme-opt b { display: block; font-size: 13px; line-height: 1.2; }
+.theme-opt small { display: block; font-size: 11px; color: #6E5058; }
+
+.acc-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid #EFE0CC;
+}
+.acc-save {
+  border: 0;
+  background: #E99BB3;
+  color: #3D121F;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.acc-save:hover { filter: brightness(0.96); }
+.acc-save:disabled { opacity: 0.6; cursor: wait; }
+.acc-logout {
+  border: 0; background: none; color: #8C2A52;
+  font-size: 14px; font-weight: 700; cursor: pointer; padding: 6px 10px;
+}
+.acc-logout:hover { text-decoration: underline; }
+.acc-cancel {
+  border: 0; background: none; color: #2B171D;
+  font-size: 14px; font-weight: 700; cursor: pointer; padding: 6px 10px;
+}
+
+/* Auth scherm binnen Account modal */
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  background: #F4E7D7;
+  padding: 4px;
+  border-radius: 999px;
+}
+.auth-tabs button {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #5E434B;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.auth-tabs button.on {
+  background: #48051E;
+  color: #FFF8EE;
+}
+.auth-err {
+  background: #FDE4E4;
+  color: #8B1C1C;
+  border: 1px solid #F5B5B5;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.auth-ok {
+  background: #E4F7EC;
+  color: #165B37;
+  border: 1px solid #A9DFBF;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.auth-note {
+  background: #FBF1E3;
+  border: 1px solid #EFE0CC;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #5E434B;
+  margin-bottom: 14px;
+}
+.acc-box {
+  background: #FBF1E3;
+  border: 1px solid #EFE0CC;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.acc-box h4 { margin: 0 0 6px; font-size: 14px; font-weight: 800; color: #2B171D; }
+.acc-box p { margin: 0 0 10px; font-size: 13px; color: #5E434B; }
+.acc-danger {
+  border: 1.5px solid #C0392B;
+  background: #FFF5F5;
+  color: #A92216;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.acc-danger:hover { background: #FDE2E2; }
+
+/* Toast melding */
+#toast {
+  position: fixed;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #231419;
+  color: #FFF8D5;
+  border: 1px solid var(--acc);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s, transform .2s;
+  z-index: 999;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.shelf h2{display:none}
+.label{font-weight:600;margin:0 0 6px;color:var(--mut)}
+.card{background:var(--card);border-radius:14px;padding:18px;margin-bottom:16px}
+.big{font-size:56px;font-weight:800;line-height:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:340px}
+.cal i{aspect-ratio:1;border-radius:6px;background:var(--line);display:block}
+.cal i.d{background:var(--acc)}.cal i.f{background:var(--acc2)}
+.bars{display:flex;align-items:flex-end;gap:6px;height:120px}
+.bars div{flex:1;background:var(--acc);border-radius:4px 4px 0 0;min-height:2px}
+.bars span{font-size:11px;color:var(--mut)}
+
+/* Standaard dialogs */
+dialog{border:0;border-radius:16px;background:var(--card);color:var(--ink);width:min(440px,94vw);padding:20px}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+dialog label{display:block;margin:8px 0 2px;font-size:14px;color:var(--mut)}
+dialog input,dialog select,dialog textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+
+/* Edit Mode Dialog (Tabbed UI) voor bestaande boeken */
+dialog.edit-mode { padding: 0; width: min(600px, 94vw); background: var(--bg); overflow: hidden; }
+dialog.edit-mode form { display: flex; flex-direction: column; max-height: 85vh; margin: 0; }
+.dlg-hdr { background: #2A1118; height: 90px; display: flex; justify-content: space-between; align-items: flex-start; padding: 16px; position: relative; flex: none; }
+.dlg-hdr .btn { border-radius: 999px; padding: 6px 16px; font-size: 14px; }
+.dlg-hdr .btn.ghost { background: rgba(255,255,255,0.1); border: 0; color: #fff; }
+.dlg-cover { position: absolute; left: 50%; top: 25px; transform: translateX(-50%); width: 70px; height: 105px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); object-fit: cover; background: var(--card); z-index: 2; display: none; }
+.dlg-cover[src] { display: block; }
+.dlg-body { padding: 50px 20px 20px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; }
+.dlg-tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--line); margin: 20px 0; overflow-x: auto; flex: none; }
+.dlg-tab { background: none; border: 0; color: var(--mut); padding: 8px 0; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; font-size: 15px; }
+.dlg-tab.on { color: var(--ink); border-bottom-color: var(--acc); }
+.dlg-panels { flex: 1; display: flex; flex-direction: column; }
+.dlg-panel { display: none; flex-direction: column; gap: 12px; }
+.dlg-panel.on { display: flex; }
+.f-card { background: var(--card); border-radius: 12px; padding: 16px; }
+.f-card h4 { margin: 0 0 12px; color: var(--acc2); font-size: 13px; font-weight: 800; letter-spacing: 0.5px; text-transform: lowercase; }
+
+.row{display:flex;gap:8px}.row>*{flex:1}
+.empty{color:var(--mut);padding:30px 0}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.pg{font-size:40px;font-weight:800;letter-spacing:-1px;margin:8px 0 16px;line-height:1.1}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:.04em;color:var(--mut);margin:0 0 6px}
+.dark{background:var(--kast)}h3{margin:0 0 4px;font-size:22px}
+.big small{font-size:.4em;font-weight:600;color:var(--mut)}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.hgrid .now{grid-column:span 2}.hgrid .wide{grid-column:1/-1}
+@media(max-width:700px){.hgrid .now{grid-column:auto}}
+.pbar{height:10px;background:var(--line);border-radius:9px;overflow:hidden;margin:10px 0}.pbar i{display:block;height:100%;background:var(--acc)}
+.tabs,.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+.tabs button,.chips button{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 14px;cursor:pointer}
+.tabs button.on,.chips button.on{background:var(--acc);color:var(--on);border-color:var(--acc)}
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:14px}
+.lc{background:var(--card);border:0;border-radius:14px;padding:10px;text-align:left;cursor:grab;display:flex;flex-direction:column;gap:4px;user-select:none;-webkit-user-select:none;transition:transform .15s, box-shadow .15s, opacity .15s}
+.lc:active{cursor:grabbing}
+.lc small{color:var(--mut)}.pill{font-size:11px;font-family:ui-monospace,monospace;background:var(--bg);border-radius:99px;padding:1px 8px;align-self:flex-start}
+.cv{aspect-ratio:2/3;border-radius:4px 8px 8px 4px;color:var(--on);font-weight:600;font-size:13px;padding:8px;overflow:hidden;box-shadow:inset 5px 0 rgba(0,0,0,.2)}
+.cv.big{width:150px;margin:8px auto 14px}
+.split{display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
+.spot{text-align:center;position:sticky;top:12px}
+.cols{columns:2 260px;gap:14px}.note{break-inside:avoid;position:relative}
+.note .x{position:absolute;top:8px;right:8px;border:0;background:none;cursor:pointer;color:var(--mut)}.note .q{font-size:18px}
+.lnk{display:block;border:0;background:none;padding:2px 0;cursor:pointer;text-align:left;color:var(--acc)}
+.sq{display:flex;flex-wrap:wrap;gap:5px;margin:14px 0}.sq i{width:18px;height:18px;border-radius:4px;background:var(--line)}.sq i.d{background:var(--acc)}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.tiles{display:flex;flex-wrap:wrap;gap:8px}.tiles .cv{width:64px;font-size:9px;padding:4px}
+.cmon{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}.cmon .h{font-size:12px;color:var(--mut);text-align:center}
+.day{min-height:62px;border:1px dashed var(--line);border-radius:10px;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;padding:5px 7px;text-align:left}
+.day.off{border:0;cursor:default}.day.sel{outline:3px solid var(--ink)}.day.today b{color:var(--acc)}
+.day small{font-size:11px;color:var(--mut)}.day em{font-size:11px;font-style:normal;color:var(--acc2)}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:16px}
+.hl{background:var(--acc);color:var(--on)}.hl .mono,.hl .big small{color:var(--on)}.hl .sq i{background:rgba(0,0,0,.2)}.hl .sq i.d{background:var(--on)}
+.mini{display:flex;gap:4px;height:80px;margin-bottom:10px}.mini i{width:40px;border-radius:3px}
+.sess{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+</style></head><body>
+<div id="wrap">
+<aside id="side"><button id="tog" aria-expanded="true" aria-label="Menu in- of uitklappen" title="Menu in- of uitklappen"><span class="ic"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></span><span class="tx">Inklappen</span></button>
+<nav id="nav">
+  <button data-v="home" title="Home"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></span><span class="tx">home</span></button>
+  <button data-v="library" title="Library"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path><path d="M6 6h12M6 10h12M6 14h6"></path></svg></span><span class="tx">library</span></button>
+  <button data-v="shelves" title="Shelves"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M3 15h18M9 3v6M15 9v6"></path></svg></span><span class="tx">shelves</span></button>
+  <button data-v="notes" title="Notes"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg></span><span class="tx">notes</span></button>
+  <button data-v="challenge" title="Challenge"><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg></span><span class="tx">challenge</span></button>
+  <button data-v="calendar" title="Calendar"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></span><span class="tx">calendar</span></button>
+  <button data-v="buddy" title="Buddy"><span class="ic"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span><span class="tx">buddy</span></button>
+  <button data-v="cast" title="Cast"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg></span><span class="tx">cast</span></button>
+  <button data-v="recaps" title="Recaps"><span class="ic"><svg viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path><path d="M5 3v4"></path><path d="M19 17v4"></path><path d="M3 5h4"></path><path d="M17 19h4"></path></svg></span><span class="tx">recaps</span></button>
+  <button data-v="stats" title="Statistiek"><span class="ic"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span><span class="tx">stats</span></button>
+</nav>
+</aside>
+<div id="col">
+  <div id="topbar"></div>
+  <main id="app"></main>
+</div></div>
+<dialog id="dlg"><form id="f" method="dialog"></form></dialog>
+<dialog id="acc-dlg" class="acc-dlg"></dialog>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* =====================================================================
+   SUPABASE CONFIGURATIE
+   Plak hieronder eenmalig je eigen Project URL en Anon/Publishable Key
+   zodat je op zowel je computer als telefoon direct kunt inloggen.
+   (Laat je ze leeg, dan kun je ze ook in de app zelf invullen.)
+   ===================================================================== */
+const DEFAULT_SUPABASE_URL = "";
+const DEFAULT_SUPABASE_ANON_KEY = "";
+
+const $=s=>document.querySelector(s);
+const ST={wil:"Wil lezen",lees:"Bezig",uit:"Gelezen",dnf:"Gestopt",wish:"Wishlist"};
+const FM=["Paperback","Hardcover","E-boek","Luisterboek"];
+const NT={quote:"Quote",note:"Notitie",review:"Review",word:"Woord"};
+const MO=["januari","februari","maart","april","mei","juni","juli","augustus","september","oktober","november","december"];
+const MS=["jan","feb","mrt","apr","mei","jun","jul","aug","sep","okt","nov","dec"];
+const BADGES=["BOEKENWURM","NACHTLEZER","BLADZIJDEVRETER","VERHALENJAGER","KOFFIE & KAPPITTELS"];
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const iso=d=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const uid=()=>Math.random().toString(36).slice(2,9);
+
+/* ========== SUPABASE AUTH & CLOUD SYNC SYSTEEM ========== */
+const DEF_PREFS = () => ({
+  defaultMode: "spines",
+  defaultFormat: "Paperback",
+  weeklyReminder: false,
+  reminderDay: "zondag",
+  theme: "classic",
+  dailyPages: 30,
+  freeDays: 2,
+  privacy: "private",
+  showStreak: true
+});
+
+let sb = null;
+let currentUser = null;
+let cloudProfile = null;
+let syncStatus = "offline"; // offline | syncing | synced | error
+let syncTimer = null;
+let lastCloudUpdatedAt = null;
+let guestPrefs = DEF_PREFS();
+
+try {
+  const gp = localStorage.getItem("leeshoek_guest_prefs");
+  if (gp) guestPrefs = Object.assign(DEF_PREFS(), JSON.parse(gp));
+} catch(e) {}
+
+function getSupaConfig() {
+  if (DEFAULT_SUPABASE_URL && DEFAULT_SUPABASE_ANON_KEY) {
+    return { url: DEFAULT_SUPABASE_URL.trim(), key: DEFAULT_SUPABASE_ANON_KEY.trim(), fromCode: true };
+  }
+  try {
+    const raw = localStorage.getItem("leeshoek_supa_cfg");
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p.url && p.key) return { url: p.url.trim(), key: p.key.trim(), fromCode: false };
+    }
+  } catch(e) {}
+  return { url: "", key: "", fromCode: false };
+}
+
+function saveSupaConfig(url, key) {
+  try {
+    localStorage.setItem("leeshoek_supa_cfg", JSON.stringify({ url: url.trim(), key: key.trim() }));
+  } catch(e) {}
+}
+
+function initSupabase() {
+  const cfg = getSupaConfig();
+  if (!cfg.url || !cfg.key || !window.supabase) {
+    sb = null;
+    return false;
+  }
+  try {
+    sb = window.supabase.createClient(cfg.url, cfg.key);
+    return true;
+  } catch(e) {
+    sb = null;
+    return false;
+  }
+}
+
+const getAcc = () => cloudProfile;
+const getPrefs = () => {
+  if (cloudProfile) {
+    cloudProfile.prefs = Object.assign(DEF_PREFS(), cloudProfile.prefs || {});
+    return cloudProfile.prefs;
+  }
+  return guestPrefs;
+};
+
+const dataKey = () => currentUser ? `leeshoek_cache_${currentUser.id}` : "leeshoek";
+
+let S = {books:[],days:[],goal:24,notes:[],sess:[]};
+function loadLocalState() {
+  S = {books:[],days:[],goal:24,notes:[],sess:[]};
+  try {
+    const r = localStorage.getItem(dataKey());
+    if (r) S = Object.assign(S, JSON.parse(r));
+  } catch(e) {}
+}
+
+function saveLocalOnly() {
+  try {
+    localStorage.setItem(dataKey(), JSON.stringify(S));
+    localStorage.setItem("leeshoek_guest_prefs", JSON.stringify(guestPrefs));
+  } catch(e) {}
+}
+
+function save() {
+  saveLocalOnly();
+  if (sb && currentUser && cloudProfile) {
+    scheduleCloudSync();
+  }
+}
+
+function scheduleCloudSync() {
+  syncStatus = "syncing";
+  renderTopBar();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => pushToCloud(), 650);
+}
+
+async function pushToCloud(showToast = false) {
+  if (!sb || !currentUser || !cloudProfile) return false;
+  syncStatus = "syncing";
+  renderTopBar();
+  const nowIso = new Date().toISOString();
+  try {
+    const { error } = await sb.from("leeshoek_profiles").upsert({
+      id: currentUser.id,
+      name: cloudProfile.name || "",
+      handle: cloudProfile.handle || "",
+      avatar: cloudProfile.avatar || "",
+      badge: cloudProfile.badge || "BOEKENWURM",
+      member_since: cloudProfile.memberSince || iso(new Date()),
+      prefs: cloudProfile.prefs || DEF_PREFS(),
+      data: S,
+      updated_at: nowIso
+    });
+    if (error) throw error;
+    lastCloudUpdatedAt = nowIso;
+    syncStatus = "synced";
+    renderTopBar();
+    if (showToast) toast("Gesynchroniseerd met Supabase");
+    return true;
+  } catch(err) {
+    console.error("Supabase sync fout:", err);
+    syncStatus = "error";
+    renderTopBar();
+    if (showToast) toast("Synchronisatie mislukt: " + (err.message || "controleer je verbinding"));
+    return false;
+  }
+}
+
+async function loadCloudProfile(user, opts = {}) {
+  if (!sb || !user) return;
+  currentUser = user;
+  loadLocalState(); // Toon direct eventuele lokale cache voor snelheid
+  syncStatus = "syncing";
+  renderTopBar();
+
+  try {
+    const { data: row, error } = await sb
+      .from("leeshoek_profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (row) {
+      // Als we via tab-focus verversen en niets is veranderd, niet onnodig herrenderen
+      if (opts.onlyIfNewer && lastCloudUpdatedAt && row.updated_at && row.updated_at <= lastCloudUpdatedAt) {
+        syncStatus = "synced";
+        renderTopBar();
+        return;
+      }
+      cloudProfile = {
+        id: user.id,
+        email: user.email,
+        name: row.name || user.user_metadata?.name || user.email.split("@")[0],
+        handle: row.handle || user.user_metadata?.handle || user.email.split("@")[0].toLowerCase(),
+        avatar: row.avatar || "",
+        badge: row.badge || "BOEKENWURM",
+        memberSince: row.member_since || (user.created_at ? user.created_at.slice(0, 10) : iso(new Date())),
+        prefs: Object.assign(DEF_PREFS(), row.prefs || {})
+      };
+      S = Object.assign({books:[],days:[],goal:24,notes:[],sess:[]}, row.data || {});
+      lastCloudUpdatedAt = row.updated_at || new Date().toISOString();
+      saveLocalOnly();
+    } else {
+      // Eerste keer inloggen: maak profielrij aan in Supabase
+      let initialData = {books:[],days:[],goal:24,notes:[],sess:[]};
+      const wantImport = opts.importGuest || localStorage.getItem("leeshoek_pending_import") === "1";
+      if (wantImport) {
+        try {
+          const raw = localStorage.getItem("leeshoek");
+          if (raw) initialData = Object.assign(initialData, JSON.parse(raw));
+        } catch(e) {}
+        try { localStorage.removeItem("leeshoek_pending_import"); } catch(e) {}
+      }
+      cloudProfile = {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.name || user.email.split("@")[0],
+        handle: (user.user_metadata?.handle || user.email.split("@")[0]).toLowerCase().replace(/[^a-z0-9_.-]/g, ""),
+        avatar: "",
+        badge: "BOEKENWURM",
+        memberSince: user.created_at ? user.created_at.slice(0, 10) : iso(new Date()),
+        prefs: Object.assign(DEF_PREFS(), guestPrefs)
+      };
+      S = initialData;
+      saveLocalOnly();
+      await pushToCloud(false);
+    }
+
+    mode = getPrefs().defaultMode || "spines";
+    applyTheme(getPrefs().theme);
+    syncStatus = "synced";
+    render();
+    if (opts.welcome) toast(`Welkom terug, ${firstName(cloudProfile.name)}!`);
+  } catch(err) {
+    console.error("Fout bij laden profiel:", err);
+    syncStatus = "error";
+    renderTopBar();
+    toast("Kon cloudgegevens niet laden. Controleer of de SQL-tabel is aangemaakt.");
+  }
+}
+
+function applyTheme(theme) {
+  const t = theme || "classic";
+  if (t === "classic") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = t === "forest" ? "#243326" : t === "night" ? "#121726" : "#68002C";
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = $("#toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 3000);
+}
+
+const initials = name => (name || "L").trim().split(/\s+/).slice(0,2).map(w => w[0]).join("").toUpperCase();
+const firstName = name => (name || "").trim().split(/\s+/)[0] || "lezer";
+const fmtMember = d => {
+  if (!d) return "";
+  const dt = new Date(d + "T12:00:00");
+  return isNaN(dt) ? "" : `${MS[dt.getMonth()]} ${dt.getFullYear()}`;
+};
+
+loadLocalState();
+let view="home",mode=getPrefs().defaultMode||"spines",flt="",q="",coll="",lib="books",lf="",nf="",sort="added",sc="year",cm=0,spot=null,sd=iso(new Date());
+let dragId=null;
+applyTheme(getPrefs().theme);
+
+/* ========== HULPFUNCTIES BOEKENKAST ========== */
+const col = b => {
+  let h = 0; const s = b.id || "";
+  for(let i=0; i<s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+  return `hsl(${Math.abs(h) % 360}, 65%, 35%)`; 
+};
+
+const autoH = b => {
+  if (b.pages) return Math.min(185, Math.max(120, Math.round(100 + (b.pages / 4))));
+  let h = 0; const s = b.id || "";
+  for(let i=0; i<s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+  return 130 + (Math.abs(h) % 55); 
+};
+const autoW = b => {
+  if (b.pages) return Math.min(54, Math.max(24, Math.round(18 + (b.pages / 18))));
+  let h = 0; const s = b.id || "";
+  for(let i=0; i<s.length; i++) h = s.charCodeAt(i) + ((h << 3) - h);
+  return 28 + (Math.abs(h) % 16);
+};
+const sh = b => b.customH ? +b.customH : autoH(b);
+const sw = b => b.customW ? +b.customW : autoW(b);
+
+const yr=()=>new Date().getFullYear(),pg=b=>+b.pages||0,p2=n=>String(n).padStart(2,"0"),stars=n=>"★".repeat(+n||0);
+const bg=b=>b.coverImg?`url('${b.coverImg}') center/cover`:col(b);
+const cvh=b=>b.coverImg?"":esc(b.title);
+const doneBooks=y=>S.books.filter(b=>b.status==="uit"&&b.finished&&(!y||b.finished.startsWith(y)));
+const pgOn=d=>S.sess.filter(s=>s.date===d).reduce((a,s)=>a+ +s.pages,0);
+const allDays=()=>new Set([...S.days,...S.sess.map(s=>s.date)]);
+const tile=x=>`<button class="cv" data-edit="${x.id}" style="border:0;cursor:pointer;text-align:left;background:${bg(x)}">${cvh(x)}</button>`;
+
+function streak(){
+  const maxFree = Number(getPrefs().freeDays ?? 2);
+  const set=allDays();let d=new Date(),n=0,fr=0;
+  if(!set.has(iso(d)))d.setDate(d.getDate()-1);
+  for(let i=0;i<400;i++){const k=iso(d);
+    if(set.has(k))n++;else if(fr<maxFree&&n>0)fr++;else break;
+    d.setDate(d.getDate()-1)}
+  return{n,fr,maxFree}
+}
+
+/* ========== TOPBAR PROFIELKNOP ========== */
+function renderTopBar() {
+  const acc = getAcc();
+  const avStyle = acc && acc.avatar ? `style="background-image:url('${acc.avatar}')"` : "";
+  const avTxt = acc ? (acc.avatar ? "" : initials(acc.name)) : `<svg viewBox="0 0 24 24" style="width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+  const label = acc ? esc(firstName(acc.name)) : "Inloggen";
+  const syncLabel = syncStatus === "syncing" ? "Opslaan..." : syncStatus === "error" ? "Sync-fout" : "Cloud actief";
+  $("#topbar").innerHTML = `
+    ${acc ? `<span class="sync-pill ${syncStatus}"><i></i>${syncLabel}</span>` : ""}
+    <button class="profile-btn" id="acc-btn" aria-label="Account en instellingen openen">
+      <span class="pb-av-wrap">
+        <span class="pb-av" ${avStyle}>${avTxt}</span>
+        ${acc ? `<span class="pb-dot ${syncStatus}" title="${syncLabel}"></span>` : ""}
+      </span>
+      <span>${label}</span>
+      <svg class="pb-chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
+  `;
+  $("#acc-btn").onclick = () => openAccountModal("profile");
+}
+
+/* ========== ACCOUNT & INSTELLINGEN MODAL ========== */
+let accTab = "profile";
+let authMode = "login";
+let authErr = "";
+let authOk = "";
+let authBusy = false;
+let draftAcc = null;
+let draftGoal = 24;
+let showPwBox = false;
+
+function openAccountModal(tab = "profile") {
+  accTab = tab;
+  authErr = "";
+  authOk = "";
+  authBusy = false;
+  showPwBox = false;
+  const acc = getAcc();
+  draftAcc = acc ? JSON.parse(JSON.stringify(acc)) : null;
+  if (draftAcc) draftAcc.prefs = Object.assign(DEF_PREFS(), draftAcc.prefs || {});
+  draftGoal = S.goal;
+  renderAccountModal();
+  if (!$("#acc-dlg").open) $("#acc-dlg").showModal();
+}
+
+function closeAccountModal(revert = true) {
+  if (revert) applyTheme(getPrefs().theme || "classic");
+  $("#acc-dlg").close();
+}
+
+function renderThemePicker(currentTheme) {
+  const themes = [
+    ["classic", "Klassiek Leeshoek", "(Donkerrood/Roze)", ["#68002C", "#520023", "#E098AC"]],
+    ["forest", "Herfstbos", "(Groen/Warm)", ["#8D5A36", "#6E7B4F", "#2A402E"]],
+    ["night", "Nachtmodus", "(Diepblauw)", ["#27324F", "#1B2236", "#111624"]]
+  ];
+  return `<div class="theme-grid">${themes.map(([id, title, sub, cols]) => `
+    <button type="button" class="theme-opt${currentTheme === id ? " on" : ""}" data-pick-theme="${id}">
+      <span class="theme-sw">${cols.map(c => `<i style="background:${c}"></i>`).join("")}</span>
+      <b>${title}</b><small>${sub}</small>
+    </button>
+  `).join("")}</div>`;
+}
+
+function renderAuthView() {
+  const cfg = getSupaConfig();
+  if (!sb) {
+    return `
+      <h3>Supabase koppelen</h3>
+      <div class="auth-note">Vul je eigen <b>Supabase Project URL</b> en <b>Anon / Publishable Key</b> in om echte cloud-accounts te gebruiken op zowel je computer als je telefoon.</div>
+      ${authErr ? `<div class="auth-err">${esc(authErr)}</div>` : ""}
+      <form id="supa-cfg-form">
+        <label class="acc-lbl">Supabase Project URL</label>
+        <input type="url" name="url" required value="${esc(cfg.url)}" placeholder="https://jouwproject.supabase.co">
+        <label class="acc-lbl">Supabase Anon / Publishable Key</label>
+        <input type="password" name="key" required value="${esc(cfg.key)}" placeholder="eyJhbGci... of sb_publishable_...">
+        <div class="acc-foot">
+          <button type="submit" class="acc-save">verbinden met supabase</button>
+          <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+        </div>
+      </form>
+    `;
+  }
+
+  let guestCount = 0;
+  try {
+    const r = localStorage.getItem("leeshoek");
+    if (r) guestCount = (JSON.parse(r).books || []).length;
+  } catch(e) {}
+
+  return `
+    <h3>${authMode === "login" ? "Inloggen bij Leeshoek" : "Nieuw account aanmaken"}</h3>
+    <div class="auth-tabs">
+      <button type="button" class="${authMode === "login" ? "on" : ""}" data-auth-mode="login">Inloggen</button>
+      <button type="button" class="${authMode === "register" ? "on" : ""}" data-auth-mode="register">Account aanmaken</button>
+    </div>
+    ${authErr ? `<div class="auth-err">${esc(authErr)}</div>` : ""}
+    ${authOk ? `<div class="auth-ok">${esc(authOk)}</div>` : ""}
+    ${authMode === "login" ? `
+      <form id="auth-form">
+        <div class="auth-note">Log in met je Leeshoek-account om al je boeken, planken en notities automatisch te synchroniseren.</div>
+        <label class="acc-lbl">E-mailadres</label>
+        <input type="email" name="email" required placeholder="merel@leeshoek.nl" autocomplete="email">
+        <label class="acc-lbl">Wachtwoord</label>
+        <input type="password" name="pw" required placeholder="Je wachtwoord" autocomplete="current-password">
+        <div class="acc-foot">
+          <button type="submit" class="acc-save" ${authBusy ? "disabled" : ""}>${authBusy ? "bezig..." : "inloggen"}</button>
+          <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+        </div>
+      </form>
+    ` : `
+      <form id="auth-form">
+        <div class="auth-note">Al je boeken, plankindelingen, notities, sessies en thema worden veilig in Supabase opgeslagen en zijn overal beschikbaar.</div>
+        <div class="row">
+          <div>
+            <label class="acc-lbl">Naam</label>
+            <input type="text" name="name" required placeholder="Merel de Vries">
+          </div>
+          <div>
+            <label class="acc-lbl">Gebruikersnaam</label>
+            <input type="text" name="handle" required placeholder="merelleest">
+          </div>
+        </div>
+        <label class="acc-lbl">E-mailadres</label>
+        <input type="email" name="email" required placeholder="merel@leeshoek.nl" autocomplete="email">
+        <div class="row">
+          <div>
+            <label class="acc-lbl">Wachtwoord (min. 6 tekens)</label>
+            <input type="password" name="pw" required minlength="6" placeholder="Min. 6 tekens" autocomplete="new-password">
+          </div>
+          <div>
+            <label class="acc-lbl">Herhaal wachtwoord</label>
+            <input type="password" name="pw2" required minlength="6" placeholder="Herhaal wachtwoord" autocomplete="new-password">
+          </div>
+        </div>
+        ${guestCount > 0 ? `
+          <div class="acc-pref-row" style="margin-top:8px">
+            <label><input type="checkbox" class="acc-chk" name="importGuest" checked> Neem mijn ${guestCount} huidige ${guestCount === 1 ? "boek" : "boeken"} mee naar dit cloud-account</label>
+          </div>
+        ` : ""}
+        <div class="acc-foot">
+          <button type="submit" class="acc-save" ${authBusy ? "disabled" : ""}>${authBusy ? "aanmaken..." : "account aanmaken"}</button>
+          <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+        </div>
+      </form>
+    `}
+  `;
+}
+
+function renderAccContent() {
+  const acc = draftAcc;
+  const prefs = acc ? acc.prefs : guestPrefs;
+  const cfg = getSupaConfig();
+
+  if ((accTab === "profile" || accTab === "privacy") && !acc) {
+    return renderAuthView();
+  }
+
+  if (accTab === "profile") {
+    const st = streak();
+    const avStyle = acc.avatar ? `style="background-image:url('${acc.avatar}')"` : "";
+    return `
+      <h3>Mijn Profiel & Instellingen</h3>
+      <div class="acc-prof-box">
+        <div class="acc-av-wrap">
+          <div class="acc-av" ${avStyle}>${acc.avatar ? "" : initials(acc.name)}</div>
+          <span class="acc-av-dot"></span>
+        </div>
+        <div class="acc-prof-info">
+          <div class="acc-prof-name">${esc(acc.name)} <span>(@${esc(acc.handle)})</span></div>
+          <div class="acc-badge">${esc(acc.badge || "BOEKENWURM")}</div>
+          <div class="acc-prof-meta">Lid sinds ${fmtMember(acc.memberSince)}${prefs.showStreak ? ` · 🔥 ${st.n} ${st.n === 1 ? "dag" : "dagen"} streak` : ""}</div>
+        </div>
+        <label class="acc-pill-out">Foto wijzigen<input type="file" accept="image/*" id="acc-av-file" hidden></label>
+      </div>
+
+      <div class="acc-sec-title">Gebruikersgegevens</div>
+      <div class="row">
+        <div>
+          <label class="acc-lbl">Naam</label>
+          <input type="text" id="acc-name" value="${esc(acc.name)}">
+        </div>
+        <div>
+          <label class="acc-lbl">Gebruikersnaam</label>
+          <input type="text" id="acc-handle" value="${esc(acc.handle)}">
+        </div>
+      </div>
+      <label class="acc-lbl">E-mail (Supabase-account)</label>
+      <div class="acc-inline-row">
+        <input type="email" id="acc-email" value="${esc(acc.email)}" readonly style="opacity:.8">
+        <button type="button" class="acc-link" id="acc-pw-tog">Wachtwoord wijzigen</button>
+      </div>
+      ${showPwBox ? `
+        <div class="acc-box" style="margin-top:10px">
+          <h4>Nieuw wachtwoord instellen</h4>
+          <div class="row">
+            <div><label class="acc-lbl">Nieuw wachtwoord</label><input type="password" id="acc-new-pw" placeholder="Min. 6 tekens"></div>
+            <div><label class="acc-lbl">Bevestig wachtwoord</label><input type="password" id="acc-new-pw2" placeholder="Herhaal"></div>
+          </div>
+          <button type="button" class="acc-pill-out" id="acc-pw-save" style="margin-top:10px">Wachtwoord bijwerken</button>
+        </div>
+      ` : ""}
+
+      <div class="acc-sec-title">Leesvoorkeuren</div>
+      <div class="acc-pref-row">
+        <label><input type="checkbox" class="acc-chk" checked disabled> Standaardweergave op planken</label>
+        <select id="acc-def-mode">
+          <option value="spines"${prefs.defaultMode === "spines" ? " selected" : ""}>Ruggen (standaard)</option>
+          <option value="covers"${prefs.defaultMode === "covers" ? " selected" : ""}>Covers</option>
+        </select>
+      </div>
+      <div class="acc-pref-row">
+        <label><input type="checkbox" class="acc-chk" id="acc-rem-chk"${prefs.weeklyReminder ? " checked" : ""}> Wekelijkse leesherinnering</label>
+        <button type="button" class="acc-toggle${prefs.weeklyReminder ? " on" : ""}" id="acc-rem-btn">${prefs.weeklyReminder ? "Aan" : "Uit"}</button>
+      </div>
+
+      <div class="acc-sec-title">App-thema & Weergave</div>
+      ${renderThemePicker(prefs.theme)}
+
+      <div class="acc-foot">
+        <button type="button" class="acc-save" id="acc-save-btn">wijzigingen opslaan</button>
+        <button type="button" class="acc-logout" id="acc-logout-btn">uitloggen</button>
+        <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+      </div>
+    `;
+  }
+
+  if (accTab === "settings") {
+    return `
+      <h3>App-instellingen</h3>
+      <div class="acc-sec-title" style="margin-top:4px">Weergave & Standaardwaarden</div>
+      <div class="acc-pref-row">
+        <label>Standaardweergave op planken</label>
+        <select id="acc-def-mode">
+          <option value="spines"${prefs.defaultMode === "spines" ? " selected" : ""}>Ruggen</option>
+          <option value="covers"${prefs.defaultMode === "covers" ? " selected" : ""}>Covers</option>
+        </select>
+      </div>
+      <div class="acc-pref-row">
+        <label>Standaard formaat bij nieuw boek</label>
+        <select id="acc-def-fmt">
+          ${FM.map(f => `<option value="${f}"${prefs.defaultFormat === f ? " selected" : ""}>${f}</option>`).join("")}
+        </select>
+      </div>
+      <div class="acc-pref-row">
+        <label><input type="checkbox" class="acc-chk" id="acc-rem-chk"${prefs.weeklyReminder ? " checked" : ""}> Wekelijkse leesherinnering</label>
+        <button type="button" class="acc-toggle${prefs.weeklyReminder ? " on" : ""}" id="acc-rem-btn">${prefs.weeklyReminder ? "Aan" : "Uit"}</button>
+      </div>
+      ${prefs.weeklyReminder ? `
+        <div class="acc-pref-row">
+          <label>Herinneringsdag</label>
+          <select id="acc-rem-day">
+            ${["maandag","dinsdag","woensdag","donderdag","vrijdag","zaterdag","zondag"].map(d => `<option value="${d}"${prefs.reminderDay === d ? " selected" : ""}>${d}</option>`).join("")}
+          </select>
+        </div>
+      ` : ""}
+
+      <div class="acc-sec-title">App-thema & Weergave</div>
+      ${renderThemePicker(prefs.theme)}
+
+      <div class="acc-foot">
+        <button type="button" class="acc-save" id="acc-save-btn">wijzigingen opslaan</button>
+        <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+      </div>
+    `;
+  }
+
+  if (accTab === "goals") {
+    return `
+      <h3>Leesdoelen</h3>
+      <div class="acc-box">
+        <h4>Jaardoel (${yr()})</h4>
+        <p>Hoeveel boeken wil je dit jaar uitlezen?</p>
+        <div class="acc-inline-row">
+          <input type="range" id="acc-goal-rng" min="1" max="200" value="${draftGoal}" style="accent-color:#8C2A52">
+          <input type="number" id="acc-goal-num" min="1" max="500" value="${draftGoal}" style="width:90px">
+        </div>
+      </div>
+
+      <div class="acc-box">
+        <h4>Dagelijks ritme & Streak</h4>
+        <div class="row">
+          <div>
+            <label class="acc-lbl">Dagelijks paginadoel</label>
+            <input type="number" id="acc-daily-pg" min="1" max="500" value="${prefs.dailyPages || 30}">
+          </div>
+          <div>
+            <label class="acc-lbl">Vrije dagen in streak</label>
+            <input type="number" id="acc-free-days" min="0" max="7" value="${prefs.freeDays ?? 2}">
+          </div>
+        </div>
+      </div>
+
+      ${acc ? `
+        <div class="acc-box">
+          <h4>Lezersbadge op profiel</h4>
+          <select id="acc-badge-sel">
+            ${BADGES.map(b => `<option value="${b}"${(acc.badge || "BOEKENWURM") === b ? " selected" : ""}>${b}</option>`).join("")}
+          </select>
+        </div>
+      ` : ""}
+
+      <div class="acc-foot">
+        <button type="button" class="acc-save" id="acc-save-btn">wijzigingen opslaan</button>
+        <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+      </div>
+    `;
+  }
+
+  if (accTab === "data") {
+    return `
+      <h3>Data & Back-up</h3>
+      <div class="acc-box">
+        <h4>Supabase Cloud-synchronisatie</h4>
+        <p>${acc ? `Ingelogd als <b>${esc(acc.email)}</b>. Alle wijzigingen worden automatisch opgeslagen in Supabase (<b>${S.books.length}</b> boeken, <b>${S.notes.length}</b> notities, <b>${S.sess.length}</b> sessies).` : sb ? "Supabase is gekoppeld. Log in onder <b>Mijn Profiel</b> om automatisch te synchroniseren." : "Supabase is nog niet gekoppeld."}</p>
+        ${acc ? `
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <button type="button" class="acc-save" id="btn-sync-now" style="padding:8px 16px">Nu synchroniseren</button>
+            <button type="button" class="acc-pill-out" id="btn-pull-now">Ververs vanuit cloud</button>
+          </div>
+        ` : ""}
+        ${cfg.fromCode ? `<p style="margin:0;font-size:12px"><i>Koppeling staat vast ingesteld in het HTML-bestand.</i></p>` : `
+          <label class="acc-lbl">Supabase Project URL</label>
+          <input type="url" id="acc-cloud-url" value="${esc(cfg.url)}" placeholder="https://jouwproject.supabase.co">
+          <label class="acc-lbl">Supabase Anon / Publishable Key</label>
+          <input type="password" id="acc-cloud-key" value="${esc(cfg.key)}" placeholder="eyJhbGci... of sb_publishable_...">
+          <button type="button" class="acc-pill-out" id="btn-save-supa" style="margin-top:10px">Verbinding opslaan</button>
+        `}
+      </div>
+
+      <div class="acc-box">
+        <h4>Lokale Back-up (.json)</h4>
+        <p>Download een extra veiligheidskopie van je volledige account of zet een eerder bestand terug.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="acc-pill-out" id="btn-json-exp">Exporteer back-up</button>
+          <label class="acc-pill-out">Herstel back-up<input type="file" accept=".json" id="btn-json-imp" hidden></label>
+        </div>
+      </div>
+
+      <div class="acc-box">
+        <h4>Boekenlijst (CSV)</h4>
+        <p>Handig voor Excel, Goodreads of StoryGraph.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button type="button" class="acc-pill-out" id="btn-csv-exp-acc">Exporteer CSV</button>
+          <label class="acc-pill-out">Importeer CSV<input type="file" accept=".csv" id="btn-csv-imp-acc" hidden></label>
+        </div>
+      </div>
+
+      <div class="acc-foot">
+        <button type="button" class="acc-cancel" id="acc-cancel-btn">sluiten</button>
+      </div>
+    `;
+  }
+
+  if (accTab === "privacy") {
+    return `
+      <h3>Privacy & Beveiliging</h3>
+      <div class="acc-box">
+        <h4>Profielzichtbaarheid</h4>
+        <p>Bepaal wie jouw boekenkast en leesvoortgang mag zien zodra Buddy-functies actief zijn.</p>
+        <select id="acc-priv-sel">
+          <option value="private"${prefs.privacy === "private" ? " selected" : ""}>Privé (alleen ik)</option>
+          <option value="buddies"${prefs.privacy === "buddies" ? " selected" : ""}>Alleen mijn leesbuddies</option>
+          <option value="public"${prefs.privacy === "public" ? " selected" : ""}>Openbaar profiel</option>
+        </select>
+        <div class="acc-pref-row" style="margin-top:10px">
+          <label><input type="checkbox" class="acc-chk" id="acc-show-streak"${prefs.showStreak ? " checked" : ""}> Toon leesstreak op mijn profiel</label>
+        </div>
+      </div>
+
+      <div class="acc-box">
+        <h4>Cloudgegevens wissen</h4>
+        <p>Verwijdert je boeken, notities en profielgegevens uit Supabase en logt je uit. Maak eventueel eerst een JSON-back-up.</p>
+        <button type="button" class="acc-danger" id="btn-del-acc">Cloudgegevens wissen & uitloggen</button>
+      </div>
+
+      <div class="acc-foot">
+        <button type="button" class="acc-save" id="acc-save-btn">wijzigingen opslaan</button>
+        <button type="button" class="acc-logout" id="acc-logout-btn">uitloggen</button>
+        <button type="button" class="acc-cancel" id="acc-cancel-btn">annuleren</button>
+      </div>
+    `;
+  }
+}
+
+function renderAccountModal() {
+  const navItems = [
+    ["profile", "Mijn Profiel", `<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`],
+    ["settings", "App-instellingen", `<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>`],
+    ["goals", "Leesdoelen", `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`],
+    ["data", "Data & Back-up", `<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>`],
+    ["privacy", "Privacy", `<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>`]
+  ];
+
+  $("#acc-dlg").innerHTML = `
+    <div class="acc-shell">
+      <div class="acc-head">
+        <h2>Account & Instellingen</h2>
+        <button type="button" class="acc-x" id="acc-x" aria-label="Sluiten">✕</button>
+      </div>
+      <div class="acc-grid">
+        <nav class="acc-nav">
+          ${navItems.map(([id, lbl, ic]) => `
+            <button type="button" class="${accTab === id ? "on" : ""}" data-acc-tab="${id}">
+              <svg viewBox="0 0 24 24">${ic}</svg><span>${lbl}</span>
+            </button>
+          `).join("")}
+        </nav>
+        <div class="acc-card">${renderAccContent()}</div>
+      </div>
+    </div>
+  `;
+  bindAccountModal();
+}
+
+function syncDraftFromDom() {
+  const prefs = draftAcc ? draftAcc.prefs : guestPrefs;
+  if (draftAcc) {
+    if ($("#acc-name")) draftAcc.name = $("#acc-name").value.trim() || draftAcc.name;
+    if ($("#acc-handle")) draftAcc.handle = $("#acc-handle").value.trim().replace(/^@+/, "") || draftAcc.handle;
+    if ($("#acc-badge-sel")) draftAcc.badge = $("#acc-badge-sel").value;
+  }
+  if ($("#acc-def-mode")) prefs.defaultMode = $("#acc-def-mode").value;
+  if ($("#acc-def-fmt")) prefs.defaultFormat = $("#acc-def-fmt").value;
+  if ($("#acc-rem-day")) prefs.reminderDay = $("#acc-rem-day").value;
+  if ($("#acc-daily-pg")) prefs.dailyPages = Math.max(1, +$("#acc-daily-pg").value || 30);
+  if ($("#acc-free-days")) prefs.freeDays = Math.max(0, +$("#acc-free-days").value || 0);
+  if ($("#acc-goal-num")) draftGoal = Math.max(1, +$("#acc-goal-num").value || 24);
+  if ($("#acc-priv-sel")) prefs.privacy = $("#acc-priv-sel").value;
+  if ($("#acc-show-streak")) prefs.showStreak = $("#acc-show-streak").checked;
+}
+
+function bindAccountModal() {
+  const on = (s, e, fn) => { const el = $(s); if (el) el.addEventListener(e, fn); };
+
+  on("#acc-x", "click", () => closeAccountModal(true));
+  on("#acc-cancel-btn", "click", () => closeAccountModal(true));
+
+  document.querySelectorAll("[data-acc-tab]").forEach(btn => {
+    btn.onclick = () => {
+      syncDraftFromDom();
+      accTab = btn.dataset.accTab;
+      authErr = ""; authOk = "";
+      renderAccountModal();
+    };
+  });
+
+  document.querySelectorAll("[data-auth-mode]").forEach(btn => {
+    btn.onclick = () => {
+      authMode = btn.dataset.authMode;
+      authErr = ""; authOk = "";
+      renderAccountModal();
+    };
+  });
+
+  // Supabase configuratie formulier (als niet in code ingevuld)
+  const supaForm = $("#supa-cfg-form");
+  if (supaForm) {
+    supaForm.onsubmit = async e => {
+      e.preventDefault();
+      const d = Object.fromEntries(new FormData(supaForm));
+      saveSupaConfig(d.url, d.key);
+      if (!initSupabase()) {
+        authErr = "Kon geen verbinding maken. Controleer je URL en Anon Key.";
+        renderAccountModal();
+        return;
+      }
+      authErr = "";
+      const { data } = await sb.auth.getSession();
+      if (data?.session?.user) {
+        await loadCloudProfile(data.session.user);
+        draftAcc = JSON.parse(JSON.stringify(cloudProfile));
+      }
+      renderAccountModal();
+      toast("Supabase verbonden!");
+    };
+  }
+
+  on("#btn-save-supa", "click", async () => {
+    const u = ($("#acc-cloud-url")?.value || "").trim();
+    const k = ($("#acc-cloud-key")?.value || "").trim();
+    if (!u || !k) { toast("Vul zowel je Project URL als je Key in."); return; }
+    saveSupaConfig(u, k);
+    if (initSupabase()) {
+      const { data } = await sb.auth.getSession();
+      if (data?.session?.user) await loadCloudProfile(data.session.user);
+      toast("Supabase-verbinding opgeslagen!");
+      renderAccountModal();
+    } else {
+      toast("Kon Supabase niet initialiseren.");
+    }
+  });
+
+  // Supabase Auth: Inloggen & Account aanmaken
+  const authForm = $("#auth-form");
+  if (authForm) {
+    authForm.onsubmit = async e => {
+      e.preventDefault();
+      if (!sb || authBusy) return;
+      const d = Object.fromEntries(new FormData(authForm));
+      authErr = ""; authOk = ""; authBusy = true;
+      renderAccountModal();
+
+      try {
+        if (authMode === "login") {
+          const { data, error } = await sb.auth.signInWithPassword({
+            email: (d.email || "").trim(),
+            password: d.pw || ""
+          });
+          if (error) throw error;
+          authBusy = false;
+          closeAccountModal(false);
+          await loadCloudProfile(data.user, { welcome: true });
+        } else {
+          if (d.pw !== d.pw2) throw new Error("De wachtwoorden komen niet overeen.");
+          const name = (d.name || "").trim();
+          const handle = (d.handle || "").trim().replace(/^@+/, "").toLowerCase();
+          if (d.importGuest) {
+            try { localStorage.setItem("leeshoek_pending_import", "1"); } catch(err) {}
+          }
+          const { data, error } = await sb.auth.signUp({
+            email: (d.email || "").trim(),
+            password: d.pw,
+            options: { data: { name, handle } }
+          });
+          if (error) throw error;
+          authBusy = false;
+          if (data.session && data.user) {
+            closeAccountModal(false);
+            await loadCloudProfile(data.user, { importGuest: Boolean(d.importGuest) });
+            toast(`Account aangemaakt! Welkom, ${firstName(name)}.`);
+          } else {
+            authMode = "login";
+            authOk = "Account aangemaakt! Bevestig eerst je e-mailadres via de link in je inbox en log daarna in.";
+            renderAccountModal();
+          }
+        }
+      } catch(err) {
+        authBusy = false;
+        const msg = err.message || "Er ging iets mis.";
+        if (msg.includes("Invalid login credentials")) authErr = "Onjuist e-mailadres of wachtwoord.";
+        else if (msg.includes("Email not confirmed")) authErr = "Je e-mailadres is nog niet bevestigd. Check je inbox (of spammap).";
+        else if (msg.includes("User already registered")) authErr = "Dit e-mailadres heeft al een account. Probeer in te loggen.";
+        else authErr = msg;
+        renderAccountModal();
+      }
+    };
+  }
+
+  // Profielfoto uploaden (vierkant 160x160 voor snelle cloud sync)
+  on("#acc-av-file", "change", e => {
+    const f = e.target.files[0];
+    if (!f || !draftAcc) return;
+    const im = new Image();
+    im.onload = () => {
+      const sz = Math.min(im.width, im.height);
+      const sx = (im.width - sz) / 2, sy = (im.height - sz) / 2;
+      const c = document.createElement("canvas");
+      c.width = 160; c.height = 160;
+      c.getContext("2d").drawImage(im, sx, sy, sz, sz, 0, 0, 160, 160);
+      syncDraftFromDom();
+      draftAcc.avatar = c.toDataURL("image/jpeg", 0.78);
+      renderAccountModal();
+    };
+    im.src = URL.createObjectURL(f);
+  });
+
+  // Wachtwoord wijzigen in Supabase Auth
+  on("#acc-pw-tog", "click", () => {
+    syncDraftFromDom();
+    showPwBox = !showPwBox;
+    renderAccountModal();
+  });
+  on("#acc-pw-save", "click", async () => {
+    const p1 = ($("#acc-new-pw")?.value || "");
+    const p2v = ($("#acc-new-pw2")?.value || "");
+    if (p1.length < 6) { toast("Wachtwoord moet minimaal 6 tekens zijn."); return; }
+    if (p1 !== p2v) { toast("Wachtwoorden komen niet overeen."); return; }
+    if (!sb) return;
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    if (error) { toast("Wachtwoord wijzigen mislukt: " + error.message); return; }
+    showPwBox = false;
+    renderAccountModal();
+    toast("Wachtwoord bijgewerkt!");
+  });
+
+  const toggleRem = () => {
+    syncDraftFromDom();
+    const prefs = draftAcc ? draftAcc.prefs : guestPrefs;
+    prefs.weeklyReminder = !prefs.weeklyReminder;
+    renderAccountModal();
+  };
+  on("#acc-rem-btn", "click", toggleRem);
+  on("#acc-rem-chk", "change", toggleRem);
+
+  document.querySelectorAll("[data-pick-theme]").forEach(btn => {
+    btn.onclick = () => {
+      syncDraftFromDom();
+      const prefs = draftAcc ? draftAcc.prefs : guestPrefs;
+      prefs.theme = btn.dataset.pickTheme;
+      applyTheme(prefs.theme);
+      renderAccountModal();
+    };
+  });
+
+  on("#acc-goal-rng", "input", e => {
+    draftGoal = +e.target.value;
+    if ($("#acc-goal-num")) $("#acc-goal-num").value = draftGoal;
+  });
+  on("#acc-goal-num", "input", e => {
+    draftGoal = Math.max(1, +e.target.value || 1);
+    if ($("#acc-goal-rng")) $("#acc-goal-rng").value = Math.min(200, draftGoal);
+  });
+
+  // Wijzigingen opslaan
+  on("#acc-save-btn", "click", async () => {
+    syncDraftFromDom();
+    if (draftAcc) cloudProfile = draftAcc;
+    S.goal = draftGoal;
+    mode = getPrefs().defaultMode || mode;
+    applyTheme(getPrefs().theme);
+    saveLocalOnly();
+    closeAccountModal(false);
+    render();
+    if (sb && currentUser && cloudProfile) {
+      await pushToCloud(false);
+      toast("Wijzigingen opgeslagen in de cloud");
+    } else {
+      toast("Wijzigingen opgeslagen");
+    }
+  });
+
+  // Uitloggen
+  on("#acc-logout-btn", "click", async () => {
+    if (sb) await sb.auth.signOut();
+    currentUser = null;
+    cloudProfile = null;
+    lastCloudUpdatedAt = null;
+    syncStatus = "offline";
+    loadLocalState();
+    spot = null;
+    applyTheme(getPrefs().theme);
+    closeAccountModal(false);
+    render();
+    toast("Je bent uitgelogd");
+  });
+
+  // Cloudgegevens wissen & uitloggen
+  on("#btn-del-acc", "click", async () => {
+    if (!sb || !currentUser) return;
+    if (!confirm("Weet je zeker dat je al je boeken, notities en profielgegevens uit Supabase wilt wissen?")) return;
+    try {
+      await sb.from("leeshoek_profiles").delete().eq("id", currentUser.id);
+      try { localStorage.removeItem(dataKey()); } catch(e) {}
+      await sb.auth.signOut();
+      currentUser = null;
+      cloudProfile = null;
+      lastCloudUpdatedAt = null;
+      syncStatus = "offline";
+      loadLocalState();
+      spot = null;
+      applyTheme(getPrefs().theme);
+      closeAccountModal(false);
+      render();
+      toast("Cloudgegevens gewist en uitgelogd");
+    } catch(err) {
+      toast("Wissen mislukt: " + err.message);
+    }
+  });
+
+  // Handmatige sync-knoppen
+  on("#btn-sync-now", "click", () => pushToCloud(true));
+  on("#btn-pull-now", "click", async () => {
+    if (!currentUser) return;
+    await loadCloudProfile(currentUser);
+    draftAcc = cloudProfile ? JSON.parse(JSON.stringify(cloudProfile)) : null;
+    renderAccountModal();
+    toast("Laatste versie opgehaald uit Supabase");
+  });
+
+  // Lokale JSON Back-up
+  on("#btn-json-exp", "click", () => {
+    syncDraftFromDom();
+    const payload = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      account: draftAcc || null,
+      data: S
+    };
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+    a.download = `leeshoek-backup-${iso(new Date())}.json`;
+    a.click();
+    toast("Back-up gedownload");
+  });
+
+  on("#btn-json-imp", "change", e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = async () => {
+      try {
+        const p = JSON.parse(rd.result);
+        const d = p.data || p;
+        if (!Array.isArray(d.books)) throw new Error("Ongeldig bestand");
+        S = Object.assign({books:[],days:[],goal:24,notes:[],sess:[]}, d);
+        if (p.account && draftAcc) {
+          if (p.account.prefs) draftAcc.prefs = Object.assign(DEF_PREFS(), p.account.prefs);
+          if (p.account.avatar) draftAcc.avatar = p.account.avatar;
+          if (p.account.badge) draftAcc.badge = p.account.badge;
+          cloudProfile = draftAcc;
+        }
+        save();
+        applyTheme(getPrefs().theme);
+        renderAccountModal();
+        render();
+        toast(`Back-up hersteld (${S.books.length} boeken)`);
+      } catch(err) {
+        toast("Kon back-up niet lezen. Kies een geldig .json bestand.");
+      }
+    };
+    rd.readAsText(f);
+  });
+
+  on("#btn-csv-exp-acc", "click", exportCsv);
+  on("#btn-csv-imp-acc", "change", e => { importCsv(e); setTimeout(() => renderAccountModal(), 250); });
+}
+
+$("#acc-dlg").addEventListener("click", e => {
+  if (e.target === $("#acc-dlg")) closeAccountModal(true);
+});
+$("#acc-dlg").addEventListener("cancel", () => applyTheme(getPrefs().theme || "classic"));
+
+/* ========== PLANKEN & SPOTLIGHT ========== */
+function renderSpine(b, isSpot, extraClass="") {
+  const isPreview = extraClass.includes("preview-only");
+  const cls = `spine${b.spineImg ? " img" : ""}${isSpot ? " selected" : ""}${extraClass ? " " + extraClass : ""}`;
+  const style = `height:${sh(b)}px;width:${sw(b)}px;${b.spineImg ? `background-image:url('${b.spineImg}')` : `background:${col(b)}`}`;
+  const attrs = isPreview ? "" : `role="button" tabindex="0" draggable="true" data-spot="${b.id}" data-drag-id="${b.id}" data-book-status="${b.status}"`;
+  if (b.spineImg) {
+    return `<div class="${cls}" ${attrs} title="${esc(b.title)}" style="${style}">${esc(b.title)}</div>`;
+  }
+  return `<div class="${cls}" ${attrs} title="${esc(b.title)}" style="${style}"><span class="sp-title">${esc(b.title)}</span>${b.author?`<span class="sp-author">${esc(b.author)}</span>`:''}</div>`;
+}
+
+function renderFlat(b, isSpot) {
+  const cls = `flat-book${b.spineImg ? " img" : ""}${isSpot ? " selected" : ""}`;
+  const w = Math.min(180, Math.max(115, sh(b)));
+  const h = Math.min(46, Math.max(22, Math.round(sw(b) * 0.85)));
+  const style = `width:${w}px;height:${h}px;${b.spineImg ? `background-image:url('${b.spineImg}')` : `background:${col(b)}`}`;
+  return `<div class="${cls}" role="button" tabindex="0" draggable="true" data-spot="${b.id}" data-drag-id="${b.id}" data-book-status="${b.status}" data-orient="vertical" title="${esc(b.title)}" style="${style}"><span class="fb-title">${esc(b.title)}</span>${b.author?`<span class="fb-author">${esc(b.author)}</span>`:''}</div>`;
+}
+
+function renderFace(b, isSpot) {
+  const cls = `cover${isSpot ? " selected" : ""}`;
+  const h = Math.min(185, Math.max(135, sh(b)));
+  const w = Math.round(h * 0.66);
+  const style = `width:${w}px;height:${h}px;background:${b.coverImg ? `url('${b.coverImg}') center/cover` : col(b)}`;
+  return `<div class="${cls}" role="button" tabindex="0" draggable="true" data-spot="${b.id}" data-drag-id="${b.id}" data-book-status="${b.status}" title="${esc(b.title)}" style="${style}">${b.coverImg ? "" : `<span>${esc(b.title)}</span><small>${esc(b.author)}</small>`}</div>`;
+}
+
+function renderShelfItems(bs) {
+  let out = "", i = 0;
+  while (i < bs.length) {
+    const b = bs[i];
+    if (mode === "spines" && b.display === "flat") {
+      let stack = "";
+      while (i < bs.length && bs[i].display === "flat") {
+        stack += renderFlat(bs[i], bs[i].id === spot);
+        i++;
+      }
+      out += `<div class="flat-stack">${stack}</div>`;
+    } else if (mode === "covers" || b.display === "face") {
+      out += renderFace(b, b.id === spot);
+      i++;
+    } else {
+      out += renderSpine(b, b.id === spot);
+      i++;
+    }
+  }
+  return out;
+}
+
+function renderSpotlight(b) {
+  const r = Math.min(5, Math.max(0, +b.rating || 0));
+  const starHtml = `<span>${"★".repeat(r)}</span>${"★".repeat(5 - r)}`;
+  const isFace = b.display === "face";
+  const isFlat = b.display === "flat";
+  return `<aside class="spotlight-panel">
+    <button class="spot-close" id="spot-close" aria-label="Sluit spotlight">✕</button>
+    <div class="spot-stage">
+      <div class="spot-lamp"></div>
+      <div class="spot-beam"></div>
+      <div class="spot-cover" style="background:${b.coverImg ? `url('${b.coverImg}') center/cover` : col(b)}">
+        ${b.coverImg ? "" : `<span>${esc(b.title)}</span><small style="font-weight:400;opacity:.85">${esc(b.author)}</small>`}
+      </div>
+    </div>
+    <p class="spot-kicker">in the spotlight</p>
+    <h3 class="spot-title">${esc(b.title)}</h3>
+    <p class="spot-author">${esc(b.author) || "Onbekende auteur"}</p>
+    <div class="spot-stars" aria-label="${r} van 5 sterren">${starHtml}</div>
+    <div class="spot-actions">
+      <button class="spot-btn primary" data-edit="${b.id}">open book</button>
+      <button class="spot-btn" id="btn-spine-size">spine size</button>
+      <button class="spot-btn${isFace ? " active" : ""}" id="btn-face-out">${isFace ? "spine out" : "face out"}</button>
+      <button class="spot-btn${isFlat ? " active" : ""}" id="btn-lay-flat">${isFlat ? "stand it up" : "lay it flat"}</button>
+    </div>
+  </aside>`;
+}
+
+function shelves(){
+ let list=S.books.filter(b=>(!flt||b.status===flt)&&(!coll||b.series===coll)&&(`${b.title} ${b.author} ${b.series||""}`.toLowerCase().includes(q)));
+ const series=[...new Set(S.books.map(b=>b.series).filter(Boolean))];
+ let bar=`<div class="bar"><input id="q" placeholder="Zoek titel, auteur of reeks" value="${esc(q)}">
+ <select id="flt"><option value="">Alle</option>${Object.entries(ST).filter(([k])=>k!=="wish").map(([k,v])=>`<option value="${k}"${flt===k?" selected":""}>${v}</option>`).join("")}</select>
+ <select id="coll"><option value="">Alle reeksen</option>${series.map(s=>`<option${coll===s?" selected":""}>${esc(s)}</option>`).join("")}</select>
+ <button class="btn ghost" id="mode">${mode==="spines"?"Toon covers":"Toon ruggen"}</button>
+ <button class="btn" id="add">Boek toevoegen</button></div>`;
+ if(!S.books.length)return bar+`<p class="empty">Je planken zijn nog leeg. Voeg je eerste boek toe, of importeer een CSV.</p>${io()}`;
+
+ let caseHtml = `<p class="drag-hint">Sleep boeken om de volgorde aan te passen of naar een andere plank te verplaatsen.</p><div class="bookcase">`;
+ const filtering = Boolean(q || coll);
+ for(const [k,v] of Object.entries(ST)){
+  if(k==="wish")continue;
+  if(flt && flt!==k)continue;
+  const bs=list.filter(b=>b.status===k);
+  if(filtering && !bs.length)continue;
+  caseHtml+=`<p class="label">${v} (${bs.length})</p><div class="shelf${bs.length?"":" is-empty"}" data-shelf-status="${k}">${bs.length ? renderShelfItems(bs) : `<span class="shelf-empty">Sleep hier een boek heen voor ${v.toLowerCase()}</span>`}</div>`;
+ }
+ caseHtml+=`</div>`+(list.length?"":`<p class="empty">Niets gevonden met deze filters.</p>`)+io();
+
+ const spotBook = spot ? S.books.find(x => x.id === spot) : null;
+ if (spotBook) {
+   return bar + `<div class="shelf-split"><div>${caseHtml}</div>${renderSpotlight(spotBook)}</div>`;
+ }
+ return bar + caseHtml;
+}
+
+function openSpineSize(id) {
+  const b = S.books.find(x => x.id === id);
+  if (!b) return;
+  const sameShelf = S.books.filter(x => x.status === b.status);
+  const idx = sameShelf.findIndex(x => x.id === b.id);
+  const start = Math.max(0, idx - 3);
+  const neighbors = sameShelf.slice(start, start + 7);
+
+  let curH = sh(b);
+  let curW = sw(b);
+
+  const renderPreview = () => {
+    const html = neighbors.map(nb => {
+      if (nb.id === b.id) {
+        const tmp = { ...nb, customH: curH, customW: curW };
+        return renderSpine(tmp, false, "target preview-only");
+      }
+      return renderSpine(nb, false, "preview-only");
+    }).join("");
+    $("#sp-prev-box").innerHTML = html;
+  };
+
+  $("#dlg").className = "spine-dlg";
+  $("#f").innerHTML = `
+    <div class="sp-dlg-top">
+      <p class="sp-dlg-kicker">spine size · ${esc(b.title).toLowerCase()}</p>
+      <button type="button" class="sp-dlg-close" id="sp-x" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="sp-preview" id="sp-prev-box"></div>
+    <div class="sp-ctrl">
+      <div class="sp-ctrl-lbl"><span>height</span><span id="sp-h-val">${curH}px</span></div>
+      <input type="range" class="sp-range" id="sp-h" min="110" max="200" value="${curH}">
+    </div>
+    <div class="sp-ctrl">
+      <div class="sp-ctrl-lbl"><span>thickness</span><span id="sp-w-val">${curW}px</span></div>
+      <input type="range" class="sp-range" id="sp-w" min="20" max="68" value="${curW}">
+    </div>
+    <div class="sp-dlg-btns">
+      <button type="button" class="sp-btn-reset" id="sp-reset">reset to automatic</button>
+      <button type="submit" class="sp-btn-done" value="done">done</button>
+    </div>
+  `;
+
+  renderPreview();
+
+  $("#sp-h").oninput = e => {
+    curH = +e.target.value;
+    $("#sp-h-val").textContent = curH + "px";
+    renderPreview();
+  };
+  $("#sp-w").oninput = e => {
+    curW = +e.target.value;
+    $("#sp-w-val").textContent = curW + "px";
+    renderPreview();
+  };
+  $("#sp-reset").onclick = () => {
+    delete b.customH;
+    delete b.customW;
+    curH = autoH(b);
+    curW = autoW(b);
+    $("#sp-h").value = curH;
+    $("#sp-w").value = curW;
+    $("#sp-h-val").textContent = curH + "px";
+    $("#sp-w-val").textContent = curW + "px";
+    renderPreview();
+  };
+  $("#sp-x").onclick = () => $("#dlg").close();
+  $("#f").onsubmit = e => {
+    e.preventDefault();
+    b.customH = curH;
+    b.customW = curW;
+    save();
+    $("#dlg").close();
+    render();
+  };
+  $("#dlg").showModal();
+}
+
+const io=()=>`<p><button class="btn ghost" id="exp">Exporteer CSV</button> <label class="btn ghost" style="display:inline-block">Importeer CSV<input id="imp" type="file" accept=".csv" hidden></label></p>`;
+
+/* ========== OVERIGE PAGINA'S ========== */
+function home(){
+ const acc = getAcc();
+ const rd=S.books.filter(b=>b.status==="lees"),b=rd[0],s=streak(),y=yr(),dn=doneBooks(y).length,set=allDays(),h=new Date().getHours();
+ const g=h<6?"Goedenacht":h<12?"Goedemorgen":h<18?"Goedemiddag":"Goedenavond";
+ const nm=acc?esc(firstName(acc.name)):"lezer";
+ const prog=b&&pg(b)?Math.min(100,Math.round((+b.page||0)/pg(b)*100)):0;
+ let c="",d=new Date();d.setDate(d.getDate()-34);
+ for(let i=0;i<35;i++){c+=`<i class="${set.has(iso(d))?"d":""}"></i>`;d.setDate(d.getDate()+1)}
+ const tbr=S.books.filter(x=>x.status==="wil");
+ const now=b?`<h3>${esc(b.title)}</h3><p>${esc(b.author)}${pg(b)?` · ${pg(b)} p`:""}</p><div class="pbar"><i style="width:${prog}%"></i></div><p class="mono">p. ${+b.page||0}${pg(b)?` van ${pg(b)} · ${prog}%`:""}</p><button class="btn" data-sess="${b.id}">Pagina's loggen</button> <button class="btn ghost" data-edit="${b.id}">Bewerken</button>`:`<p>Je leest nu niets. Zet een boek op Bezig in je Library.</p><button class="btn" data-go="library">Naar Library</button>`;
+ return`<h2 class="pg">${g}, ${nm}</h2><div class="hgrid">
+ <div class="card dark now"><p class="mono">Nu aan het lezen · ${rd.length}</p>${now}</div>
+ <div class="card"><p class="mono">Streak</p><div class="big">${s.n}</div><p>dagen op rij · vrije dagen gebruikt ${s.fr}/${s.maxFree}</p><div class="cal">${c}</div></div>
+ <div class="card"><p class="mono">${y} challenge</p><div class="big">${dn}<small> / ${S.goal}</small></div><div class="pbar"><i style="width:${Math.min(100,dn/S.goal*100)}%"></i></div><button class="btn ghost" data-go="challenge">Challenge</button></div>
+ <div class="card"><p class="mono">Notities</p><div class="big">${S.notes.length}</div><button class="btn" data-go="notes">Schrijf iets</button></div>
+ <div class="card wide"><p class="mono">Up next · ${tbr.length} in je TBR</p><div class="tiles">${tbr.slice(0,10).map(tile).join("")||`<span class="empty">Je TBR is leeg.</span>`}</div></div></div>`}
+
+function library(){
+ const cnt=k=>S.books.filter(b=>b.status===k).length;
+ const T=[["books","Books",S.books.length-cnt("wish")],["series","Series",new Set(S.books.map(b=>b.series).filter(Boolean)).size],["authors","Authors",new Set(S.books.map(b=>b.author).filter(Boolean)).size],["wish","Wishlist",cnt("wish")]];
+ let h=`<h2 class="pg">Library</h2><div class="tabs">${T.map(t=>`<button data-lib="${t[0]}"${t[0]==="wish"?` data-drop-status="wish"`:""} class="${lib===t[0]?"on":""}">${t[1]} <span class="mono">${t[2]}</span></button>`).join("")}</div>`;
+ if(lib==="series"||lib==="authors"){const k=lib==="series"?"series":"author",m={};
+  S.books.forEach(b=>{if(b[k])(m[b[k]]=m[b[k]]||[]).push(b)});
+  const e=Object.entries(m).sort((a,b)=>a[0].localeCompare(b[0]));
+  return h+(e.length?`<div class="cgrid">${e.map(([n,bs])=>`<div class="card"><p class="label">${esc(n)} · ${bs.length}</p>${bs.map(b=>`<button class="lnk" data-edit="${b.id}">${esc(b.title)}</button>`).join("")}</div>`).join("")}</div>`:`<p class="empty">Nog niets om te tonen.</p>`)}
+ const w=lib==="wish";
+ const list=S.books.filter(b=>(w?b.status==="wish":b.status!=="wish")&&(!lf||b.status===lf)&&`${b.title} ${b.author} ${b.series||""}`.toLowerCase().includes(q));
+ const so={title:(a,b)=>a.title.localeCompare(b.title),author:(a,b)=>(a.author||"").localeCompare(b.author||""),rating:(a,b)=>(+b.rating||0)-(+a.rating||0)};
+ if(so[sort])list.sort(so[sort]);
+ h+=`<div class="bar"><input id="q" placeholder="Zoek titel, auteur of reeks" value="${esc(q)}"><select id="sort" aria-label="Sorteren">${[["added","Eigen volgorde"],["title","Titel"],["author","Auteur"],["rating","Cijfer"]].map(o=>`<option value="${o[0]}"${sort===o[0]?" selected":""}>${o[1]}</option>`).join("")}</select><button class="btn" id="add">Boek toevoegen</button></div>`;
+ h+=`<div class="chips">${Object.entries(ST).filter(x=>x[0]!=="wish").map(([k,v])=>`<button data-lf="${k}" data-drop-status="${k}" class="${!w&&lf===k?"on":""}">${cnt(k)} ${v}</button>`).join("")}</div>`;
+ h+=`<p class="drag-hint">Sleep boeken om te ordenen of laat ze los op een categorie hierboven.</p>`;
+ return h+(list.length?`<div class="lgrid">${list.map(b=>`<div class="lc" role="button" tabindex="0" draggable="true" data-edit="${b.id}" data-drag-id="${b.id}" data-book-status="${b.status}"><span class="pill">${ST[b.status]}</span><div class="cv" style="background:${bg(b)}">${cvh(b)}</div><b>${esc(b.title)}</b><small>${esc(b.author)}</small></div>`).join("")}</div>`:`<p class="empty">Niets gevonden.${w?" Voeg een boek toe met status Wishlist.":""}</p>`)}
+
+function notes(){
+ const L=S.notes.filter(n=>!nf||n.type===nf),C=[["","Alles"],["quote","Quotes"],["note","Notes"],["review","Reviews"],["word","Woord"]];
+ const card=n=>{const b=S.books.find(x=>x.id===n.book);return`<div class="card note"><button class="x" data-ndel="${n.id}" aria-label="Verwijder notitie">✕</button><p class="mono">${NT[n.type]}${b?` · ${esc(b.title)}`:""} · ${n.date}</p>${n.type==="word"?`<h3>${esc(n.title)}</h3>`:""}<p class="${n.type==="quote"?"q":""}">${esc(n.text)}</p>${n.type==="review"&&stars(n.stars)?`<p>${stars(n.stars)}</p>`:""}</div>`};
+ return`<div class="bar" style="justify-content:space-between;align-items:center"><h2 class="pg" style="margin:0">Notes</h2><button class="btn" id="addn">Toevoegen</button></div><div class="chips">${C.map(c=>`<button data-nf="${c[0]}" class="${nf===c[0]?"on":""}">${c[1]}</button>`).join("")}</div>${L.length?`<div class="cols">${L.map(card).join("")}</div>`:`<p class="empty">Nog niets bewaard. Voeg een quote, notitie, review of woord toe.</p>`}`}
+
+function addNote(){
+ $("#dlg").className = "";
+ $("#f").innerHTML=`<h2 style="margin-top:0">Nieuwe notitie</h2><div class="row"><div><label>Soort</label><select name="type">${Object.entries(NT).map(([k,v])=>`<option value="${k}">${v}</option>`).join("")}</select></div><div><label>Boek</label><select name="book"><option value="">Geen boek</option>${S.books.map(b=>`<option value="${b.id}">${esc(b.title)}</option>`).join("")}</select></div></div><label>Woord (alleen bij soort Woord)</label><input name="title"><label>Tekst</label><textarea name="text" rows="4" required></textarea><label>Sterren 1-5 (alleen bij Review)</label><input name="stars" type="number" min="1" max="5"><div class="row" style="margin-top:14px"><button class="btn">Opslaan</button><button class="btn ghost" value="x" formnovalidate>Annuleren</button></div>`;
+ $("#f").onsubmit=e=>{if(e.submitter.value==="x")return;S.notes.unshift({id:uid(),date:iso(new Date()),...Object.fromEntries(new FormData($("#f")))});save();render()};
+ $("#dlg").showModal()}
+
+function sess(bid,date){
+ $("#dlg").className = "";
+ $("#f").innerHTML=`<h2 style="margin-top:0">Lezen loggen</h2><label>Boek</label><select name="book"><option value="">Zonder boek</option>${S.books.map(b=>`<option value="${b.id}"${b.id===bid?" selected":""}>${esc(b.title)}</option>`).join("")}</select><div class="row"><div><label>Pagina's gelezen</label><input name="pages" type="number" min="1" required></div><div><label>Datum</label><input name="date" type="date" value="${date}" required></div></div><div class="row" style="margin-top:14px"><button class="btn">Opslaan</button><button class="btn ghost" value="x" formnovalidate>Annuleren</button></div>`;
+ $("#f").onsubmit=e=>{if(e.submitter.value==="x")return;const d=Object.fromEntries(new FormData($("#f")));S.sess.push({id:uid(),book:d.book,date:d.date,pages:+d.pages});const b=S.books.find(x=>x.id===d.book);if(b){b.page=(+b.page||0)+ +d.pages;if(b.status==="wil")b.status="lees"}save();render()};
+ $("#dlg").showModal()}
+
+function challenge(){
+ const y=yr(),dn=doneBooks(y),n=dn.length,g=S.goal,t=new Date(),mo=t.getMonth(),doy=Math.max(1,Math.floor((t-new Date(y,0,0))/864e5));
+ const m=Array(12).fill(0);dn.forEach(b=>m[+b.finished.slice(5,7)-1]++);
+ let a=0;const cum=m.map(v=>a+=v).slice(0,mo+1);
+ const proj=Math.round(n/doy*365),best=Math.max(...m),mx=Math.max(g,proj,n,5),X=i=>30+i*46,Y=v=>170-v/mx*150;
+ const svg=`<svg viewBox="0 0 560 205" role="img" aria-label="Aantal gelezen boeken per maand, cumulatief"><line x1="30" y1="${Y(0)}" x2="${X(11)}" y2="${Y(g)}" stroke="var(--mut)" stroke-dasharray="5 5"/><polyline points="${cum.map((v,i)=>`${X(i)},${Y(v)}`).join(" ")}" fill="none" stroke="var(--acc)" stroke-width="3"/>${cum.map((v,i)=>`<circle cx="${X(i)}" cy="${Y(v)}" r="4" fill="var(--acc)"/>`).join("")}${MS.map((x,i)=>`<text x="${X(i)}" y="198" text-anchor="middle" font-size="11" fill="var(--mut)">${x}</text>`).join("")}</svg>`;
+ return`<p class="mono">Reading life · challenge</p><h2 class="pg">${y} challenge</h2><div class="cgrid"><div class="card hl"><p class="mono">${y} · boeken · doel ${g}</p><div class="big">${n}<small> / ${g}</small></div><p>${n>=g?`Doel gehaald, ${n-g} extra.`:`Nog ${g-n} te gaan.`}</p><div class="sq">${Array.from({length:Math.max(g,n)},(_,i)=>`<i class="${i<n?"d":""}"></i>`).join("")}</div><label>Doel: ${g} <input id="goal" type="range" min="1" max="200" value="${g}" aria-label="Jaardoel"></label><p class="mono">${(n/doy*365/12).toFixed(1)} per maand · beste maand ${best?MS[m.indexOf(best)]+" ("+best+")":"–"} · verwacht ${proj}</p></div><div class="card dark"><p class="mono">Pace · cumulatief</p>${svg}</div></div><div class="card"><p class="label">Je ${n} tot nu toe</p><div class="tiles">${dn.map(tile).join("")||"Nog geen boeken uitgelezen dit jaar."}</div></div>`}
+
+function calendar(){
+ const t=new Date(),d0=new Date(t.getFullYear(),t.getMonth()+cm,1),Y=d0.getFullYear(),M=d0.getMonth(),first=(d0.getDay()+6)%7,dim=new Date(Y,M+1,0).getDate(),key=d=>`${Y}-${p2(M+1)}-${p2(d)}`,td=iso(t);
+ const mp=Math.max(1,...Array.from({length:dim},(_,i)=>pgOn(key(i+1))));
+ let c=["ma","di","wo","do","vr","za","zo"].map(x=>`<div class="h">${x}</div>`).join("")+`<div class="day off"></div>`.repeat(first);
+ for(let d=1;d<=dim;d++){const k=key(d),p=pgOn(k),f=S.books.filter(b=>b.status==="uit"&&b.finished===k).length;
+  c+=`<button class="day${k===sd?" sel":""}${k===td?" today":""}" data-day="${k}"${p?` style="background:color-mix(in srgb,var(--acc) ${Math.round(20+p/mp*60)}%,var(--card))"`:""}><b>${d}</b>${p?`<small>${p} p</small>`:""}${f?`<em>${f} ✓ uit</em>`:""}</button>`}
+ const ss=S.sess.filter(s=>s.date===sd),fin=S.books.filter(b=>b.status==="uit"&&b.finished===sd);
+ const dt=new Date(sd+"T12:00:00").toLocaleDateString("nl-NL",{weekday:"long",day:"numeric",month:"long"});
+ return`<p class="mono">Reading life · calendar</p><div class="split"><div><div class="bar" style="align-items:center"><button class="btn ghost" data-cm="-1" aria-label="Vorige maand">‹</button><h2 class="pg" style="margin:0">${MO[M]} ${Y}</h2><button class="btn ghost" data-cm="1" aria-label="Volgende maand">›</button>${cm?`<button class="btn ghost" data-cm="${-cm}">Vandaag</button>`:""}</div><div class="cmon">${c}</div></div><aside class="card"><p class="mono">Geselecteerde dag</p><h3>${dt}</h3><div class="big" style="font-size:40px">${pgOn(sd)}<small> pagina's</small></div>${ss.map(s=>{const b=S.books.find(x=>x.id===s.book);return`<div class="sess"><span>${b?esc(b.title):"Zonder boek"} · ${s.pages} p</span><button class="lnk" data-sdel="${s.id}" aria-label="Verwijder sessie">✕</button></div>`}).join("")||`<p class="empty">Niets gelogd op deze dag.</p>`}${fin.map(b=>`<p>✓ Uitgelezen: ${esc(b.title)}</p>`).join("")}<button class="btn" data-sess="">+ Sessie</button></aside></div>`}
+
+function buddy(){
+ return`<h2 class="pg">Buddy</h2><div class="card"><p class="empty">Hier komt binnenkort je leesbuddy en interactie met vrienden.</p></div>`;
+}
+
+function cast(){
+ return`<h2 class="pg">Cast</h2><div class="card"><p class="empty">Hier kun je jouw voortgang streamen of koppelen aan andere apparaten.</p></div>`;
+}
+
+function recaps(){
+ const y=yr(),dn=doneBooks(y),cur=new Date().getMonth();
+ let h=`<h2 class="pg">Recaps</h2><div class="card dark"><p class="mono">Jaaroverzicht</p><div class="big">${y}</div><p>${dn.length} boeken tot nu toe.</p><button class="btn" data-go="stats">Het jaar in cijfers</button></div><div class="mgrid">`;
+ for(let m=cur;m>=0;m--){const bs=dn.filter(b=>+b.finished.slice(5,7)===m+1),p=bs.reduce((a,b)=>a+pg(b),0);
+  h+=`<div class="card${m===cur?" hl":""}"><div class="mini">${bs.slice(0,4).map(b=>`<i style="background:${bg(b)}"></i>`).join("")}</div><h3>${MO[m]}</h3><p class="mono">${bs.length} ${bs.length===1?"boek":"boeken"} · ${p} pagina's</p></div>`}
+ return h+`</div>`}
+
+function stats(){
+ const y=yr(),pre=sc==="year"?String(y):iso(new Date()).slice(0,7),all=sc==="all";
+ const L=S.books.filter(b=>b.status==="uit"&&b.finished&&(all||b.finished.startsWith(pre)));
+ const p=L.reduce((a,b)=>a+pg(b),0),r=L.filter(b=>+b.rating),avg=r.length?(r.reduce((a,b)=>a+ +b.rating,0)/r.length).toFixed(1):"–";
+ const days=new Set([...allDays()].filter(d=>all||d.startsWith(pre))).size,fav=[...r].sort((a,b)=>b.rating-a.rating)[0];
+ const m=Array(12).fill(0);doneBooks(y).forEach(b=>m[+b.finished.slice(5,7)-1]++);const mx=Math.max(1,...m);
+ const fm=FM.map(f=>[f,L.filter(b=>b.format===f).length]).filter(x=>x[1]);
+ return`<p class="mono">Statistiek</p><h2 class="pg">${y} in boeken</h2><div class="tabs">${[["month","Maand"],["year","Jaar"],["all","Alles"]].map(o=>`<button data-sc="${o[0]}" class="${sc===o[0]?"on":""}">${o[1]}</button>`).join("")}</div>
+ <div class="card dark"><div class="big">${L.length}<small> boeken</small></div><div class="hgrid" style="margin-top:16px"><div><b>${p}</b><p class="mono">pagina's</p></div><div><b>${avg}${r.length?" ★":""}</b><p class="mono">gem. cijfer</p></div><div><b>${days}</b><p class="mono">leesdagen</p></div></div></div>
+ ${fav?`<div class="card hl"><p class="mono">Favoriet</p><h3>${esc(fav.title)}</h3><p>${esc(fav.author)} · ${stars(fav.rating)}</p></div>`:""}
+ <div class="card"><p class="label">Boeken per maand ${y}</p><div class="bars">${m.map((v,i)=>`<div style="height:${v/mx*100}%" title="${v}"><span>${MS[i][0]}</span></div>`).join("")}</div></div>
+ <div class="card"><p class="label">Formaten</p>${fm.map(x=>`${x[0]}: ${x[1]}`).join(" · ")||"Nog geen data."}</div>`}
+
+const V={home,library,shelves:()=>`<h2 class="pg">Planken</h2><div>${shelves()}</div>`,notes,challenge,calendar,buddy,cast,recaps,stats};
+
+/* ========== DRAG & DROP LOGICA ========== */
+function clearDropMarks() {
+  document.querySelectorAll(".drop-before,.drop-after,.drop-top,.drop-bottom,.drop-over")
+    .forEach(el => el.classList.remove("drop-before","drop-after","drop-top","drop-bottom","drop-over"));
+}
+
+function moveBook(fromId, targetId, after, newStatus) {
+  if (!fromId || fromId === targetId) return;
+
+  if (view === "library" && sort !== "added" && targetId) {
+    const domIds = [...document.querySelectorAll('.lgrid [data-drag-id]')].map(el => el.dataset.dragId);
+    const idSet = new Set(domIds);
+    const byId = new Map(S.books.map(b => [b.id, b]));
+    let di = 0;
+    S.books = S.books.map(b => idSet.has(b.id) ? byId.get(domIds[di++]) : b);
+    sort = "added";
+  }
+
+  const fromIdx = S.books.findIndex(x => x.id === fromId);
+  if (fromIdx < 0) return;
+  const [book] = S.books.splice(fromIdx, 1);
+
+  if (newStatus && book.status !== newStatus) {
+    book.status = newStatus;
+    if (newStatus === "uit" && !book.finished) book.finished = iso(new Date());
+  }
+
+  if (targetId) {
+    const toIdx = S.books.findIndex(x => x.id === targetId);
+    if (toIdx >= 0) {
+      S.books.splice(after ? toIdx + 1 : toIdx, 0, book);
+    } else {
+      S.books.push(book);
+    }
+  } else {
+    S.books.push(book);
+  }
+
+  save();
+  render();
+}
+
+function bindDragDrop() {
+  const items = document.querySelectorAll("[data-drag-id]");
+  items.forEach(el => {
+    el.addEventListener("dragstart", e => {
+      dragId = el.dataset.dragId;
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", dragId);
+      requestAnimationFrame(() => {
+        el.classList.add("dragging");
+        document.body.classList.add("is-dragging");
+      });
+    });
+
+    el.addEventListener("dragend", () => {
+      dragId = null;
+      el.classList.remove("dragging");
+      document.body.classList.remove("is-dragging");
+      clearDropMarks();
+    });
+
+    el.addEventListener("dragover", e => {
+      if (!dragId || el.dataset.dragId === dragId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.dataTransfer.dropEffect = "move";
+      clearDropMarks();
+
+      const r = el.getBoundingClientRect();
+      if (el.dataset.orient === "vertical") {
+        const isUpper = e.clientY < r.top + r.height / 2;
+        el.classList.add(isUpper ? "drop-top" : "drop-bottom");
+      } else {
+        const isRight = e.clientX > r.left + r.width / 2;
+        el.classList.add(isRight ? "drop-after" : "drop-before");
+      }
+    });
+
+    el.addEventListener("drop", e => {
+      if (!dragId || el.dataset.dragId === dragId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const r = el.getBoundingClientRect();
+      let after;
+      if (el.dataset.orient === "vertical") {
+        after = e.clientY < r.top + r.height / 2;
+      } else {
+        after = e.clientX > r.left + r.width / 2;
+      }
+      const targetStatus = view === "shelves" ? el.dataset.bookStatus : null;
+      const srcId = dragId;
+      dragId = null;
+      document.body.classList.remove("is-dragging");
+      clearDropMarks();
+      moveBook(srcId, el.dataset.dragId, after, targetStatus);
+    });
+  });
+
+  document.querySelectorAll("[data-shelf-status]").forEach(shelf => {
+    shelf.addEventListener("dragover", e => {
+      if (!dragId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      clearDropMarks();
+      shelf.classList.add("drop-over");
+    });
+
+    shelf.addEventListener("dragleave", e => {
+      if (!shelf.contains(e.relatedTarget)) shelf.classList.remove("drop-over");
+    });
+
+    shelf.addEventListener("drop", e => {
+      if (!dragId) return;
+      e.preventDefault();
+      const srcId = dragId;
+      const newStatus = shelf.dataset.shelfStatus;
+      dragId = null;
+      document.body.classList.remove("is-dragging");
+      clearDropMarks();
+      moveBook(srcId, null, true, newStatus);
+    });
+  });
+
+  document.querySelectorAll("[data-drop-status]").forEach(btn => {
+    btn.addEventListener("dragover", e => {
+      if (!dragId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      clearDropMarks();
+      btn.classList.add("drop-over");
+    });
+
+    btn.addEventListener("dragleave", () => btn.classList.remove("drop-over"));
+
+    btn.addEventListener("drop", e => {
+      if (!dragId) return;
+      e.preventDefault();
+      const srcId = dragId;
+      const newStatus = btn.dataset.dropStatus;
+      dragId = null;
+      document.body.classList.remove("is-dragging");
+      clearDropMarks();
+      moveBook(srcId, null, true, newStatus);
+    });
+  });
+}
+
+function render(){
+  renderTopBar();
+  $("#app").innerHTML=V[view]();
+  document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===view));
+  bind();
+}
+
+function bind(){
+ const on=(s,e,f)=>{const el=$(s);if(el)el.addEventListener(e,f)},all=(s,f)=>document.querySelectorAll(s).forEach(f);
+ on("#q","input",e=>{q=e.target.value.toLowerCase();const p=e.target.selectionStart;render();const n=$("#q");n.focus();n.setSelectionRange(p,p)});
+ on("#flt","change",e=>{flt=e.target.value;render()});on("#coll","change",e=>{coll=e.target.value;render()});
+ on("#sort","change",e=>{sort=e.target.value;render()});
+ on("#mode","click",()=>{mode=mode==="spines"?"covers":"spines";render()});
+ on("#add","click",()=>edit(null));
+ on("#addn","click",addNote);
+ 
+ all("[data-edit]", b => {
+   b.onclick = (e) => { e.preventDefault(); edit(b.getAttribute("data-edit")); };
+   if (b.tagName !== "BUTTON") {
+     b.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); edit(b.getAttribute("data-edit")); } };
+   }
+ });
+
+ all("[data-spot]", b => {
+   b.onclick = (e) => { e.preventDefault(); spot = b.getAttribute("data-spot"); render(); };
+   b.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); spot = b.getAttribute("data-spot"); render(); } };
+ });
+
+ on("#spot-close", "click", () => { spot = null; render(); });
+ on("#btn-spine-size", "click", () => openSpineSize(spot));
+ on("#btn-face-out", "click", () => {
+   const b = S.books.find(x => x.id === spot);
+   if (!b) return;
+   b.display = b.display === "face" ? "spine" : "face";
+   save(); render();
+ });
+ on("#btn-lay-flat", "click", () => {
+   const b = S.books.find(x => x.id === spot);
+   if (!b) return;
+   b.display = b.display === "flat" ? "spine" : "flat";
+   save(); render();
+ });
+ 
+ all("[data-go]",b=>b.onclick=()=>{view=b.dataset.go;q="";render()});
+ all("[data-lib]",b=>b.onclick=()=>{lib=b.dataset.lib;lf="";render()});
+ all("[data-lf]",b=>b.onclick=()=>{if(lib==="wish"){lib="books";lf=b.dataset.lf;}else{lf=lf===b.dataset.lf?"":b.dataset.lf;}render()});
+ all("[data-nf]",b=>b.onclick=()=>{nf=b.dataset.nf;render()});
+ all("[data-ndel]",b=>b.onclick=()=>{S.notes=S.notes.filter(n=>n.id!==b.dataset.ndel);save();render()});
+ all("[data-sess]",b=>b.onclick=()=>sess(b.dataset.sess,view==="calendar"?sd:iso(new Date())));
+ all("[data-day]",b=>b.onclick=()=>{sd=b.dataset.day;render()});
+ all("[data-cm]",b=>b.onclick=()=>{cm+=+b.dataset.cm;render()});
+ all("[data-sdel]",b=>b.onclick=()=>{S.sess=S.sess.filter(x=>x.id!==b.dataset.sdel);save();render()});
+ all("[data-sc]",b=>b.onclick=()=>{sc=b.dataset.sc;render()});
+ on("#goal","change",e=>{S.goal=+e.target.value;save();render()});
+ on("#exp","click",exportCsv);on("#imp","change",importCsv);
+
+ if (view === "shelves" || view === "library") bindDragDrop();
+}
+
+function edit(id){
+ const defFmt = getPrefs().defaultFormat || "Paperback";
+ let b = {status:"wil",format:defFmt};
+ let isNew = true;
+
+ if (id && typeof id === 'string') {
+   const found = S.books.find(x => x.id === id);
+   if (found) {
+     b = found;
+     isNew = false;
+   }
+ }
+
+ const o=(arr,v)=>arr.map(x=>`<option value="${x[0]}"${x[0]===v?" selected":""}>${x[1]}</option>`).join("");
+ 
+ if (isNew) {
+   $("#dlg").className = ""; 
+   $("#f").innerHTML=`<h2 style="margin-top:0">Nieuw boek toevoegen</h2>
+   <label>Titel</label><input name="title" id="ftit" required value="" placeholder="Typ een titel...">
+   <label>Auteur</label><input name="author" id="faut" value="">
+   <div class="row"><div><label>Reeks</label><input name="series" value=""></div><div><label>Deel</label><input name="num" type="number" value=""></div></div>
+   <div class="row"><div><label>Status</label><select name="status">${o(Object.entries(ST),"wil")}</select></div><div><label>Formaat</label><select name="format">${o(FM.map(x=>[x,x]),defFmt)}</select></div></div>
+   <div class="row"><div><label>Pagina's</label><input name="pages" type="number" value=""></div><div><label>Huidige pagina</label><input name="page" type="number" value=""></div><div><label>Cijfer (1-5)</label><input name="rating" type="number" min="1" max="5" value=""></div></div>
+   <div class="row"><div><label>Uitgelezen op</label><input name="finished" type="date" value=""></div><div><label>Prijs (€)</label><input name="price" type="number" step=".01" value=""></div></div>
+   <label>Afbeelding van de rug</label><input type="file" accept="image/*" id="fs"><input type="hidden" name="spineImg" value="">
+   <label>Afbeelding van de voorkant</label><input type="file" accept="image/*" id="fc"><input type="hidden" name="coverImg" id="hc" value="">
+   <div id="cprev" style="min-height:5px;margin-bottom:10px"></div>
+   <label>Notities en citaten</label><textarea name="notes" rows="3"></textarea>
+   <div class="row" style="margin-top:14px"><button class="btn" value="ok">Opslaan</button><button class="btn ghost" value="x" formnovalidate>Annuleren</button></div>`;
+ } else {
+   $("#dlg").className = "edit-mode"; 
+   $("#f").innerHTML = `
+   <div class="dlg-hdr">
+      <button class="btn ghost" value="x" formnovalidate>cancel</button>
+      <img src="${b.coverImg || ''}" class="dlg-cover" id="dlg-cv-img" style="${b.coverImg ? 'display:block' : ''}">
+      <button class="btn" value="ok">save</button>
+   </div>
+   <div class="dlg-body">
+      <div style="text-align:center; margin-bottom:10px;">
+          <div class="mono">editing ${b.pages ? '· ' + b.pages + ' pages' : ''}</div>
+          <h2 id="dlg-title-disp" style="margin:4px 0 2px; font-size:24px; font-weight:800;">${esc(b.title)}</h2>
+          <div id="dlg-auth-disp" style="color:var(--mut); font-size:16px;">${esc(b.author) || 'Geen auteur'}</div>
+      </div>
+      
+      <div class="dlg-tabs">
+          <button type="button" class="dlg-tab on">overzicht</button>
+          <button type="button" class="dlg-tab">het boek</button>
+          <button type="button" class="dlg-tab">reeks</button>
+          <button type="button" class="dlg-tab">mijn exemplaar</button>
+      </div>
+
+      <div class="dlg-panels">
+          <div class="dlg-panel on">
+              <div class="f-card">
+                  <h4>status & waardering</h4>
+                  <label>Status</label><select name="status">${o(Object.entries(ST),b.status)}</select>
+                  <div class="row">
+                      <div><label>Huidige pagina</label><input name="page" type="number" value="${esc(b.page)}"></div>
+                      <div><label>Cijfer (1-5)</label><input name="rating" type="number" min="1" max="5" value="${esc(b.rating)}"></div>
+                  </div>
+                  <label>Uitgelezen op</label><input name="finished" type="date" value="${esc(b.finished)}">
+              </div>
+              <div class="f-card">
+                  <h4>notities</h4>
+                  <label>Jouw gedachten en citaten</label><textarea name="notes" rows="4">${esc(b.notes)}</textarea>
+              </div>
+              <button class="btn ghost" value="del" formnovalidate style="border-color:#ff4a4a;color:#ff4a4a;margin-top:4px;">Verwijder boek</button>
+          </div>
+          <div class="dlg-panel">
+              <div class="f-card">
+                  <h4>details</h4>
+                  <label>Titel</label><input name="title" id="ftit" required value="${esc(b.title)}">
+                  <label>Auteur</label><input name="author" id="faut" value="${esc(b.author)}">
+                  <label>Pagina's</label><input name="pages" type="number" value="${esc(b.pages)}">
+              </div>
+          </div>
+          <div class="dlg-panel">
+              <div class="f-card">
+                  <h4>boekenserie</h4>
+                  <label>Naam van de reeks</label><input name="series" value="${esc(b.series)}">
+                  <label>Deel in reeks</label><input name="num" type="number" value="${esc(b.num)}">
+              </div>
+          </div>
+          <div class="dlg-panel">
+              <div class="f-card">
+                  <h4>fysiek</h4>
+                  <label>Formaat</label><select name="format">${o(FM.map(x=>[x,x]),b.format)}</select>
+                  <label>Prijs (€)</label><input name="price" type="number" step=".01" value="${esc(b.price)}">
+              </div>
+              <div class="f-card">
+                  <h4>kaften</h4>
+                  <label>Voorkant uploaden</label><input type="file" accept="image/*" id="fc"><input type="hidden" name="coverImg" id="hc" value="${esc(b.coverImg)}">
+                  <div id="cprev" style="min-height:5px;margin:8px 0 16px"></div>
+                  <label>Afbeelding van de rug</label><input type="file" accept="image/*" id="fs"><input type="hidden" name="spineImg" value="${esc(b.spineImg)}">
+              </div>
+          </div>
+      </div>
+   </div>
+   `;
+   
+   document.querySelectorAll('.dlg-tab').forEach((btn, i) => {
+      btn.onclick = () => {
+          document.querySelectorAll('.dlg-tab').forEach(el => el.classList.remove('on'));
+          document.querySelectorAll('.dlg-panel').forEach(el => el.classList.remove('on'));
+          btn.classList.add('on');
+          document.querySelectorAll('.dlg-panel')[i].classList.add('on');
+      };
+   });
+ }
+
+ let timer;
+ if (!isNew) {
+    $("#ftit").oninput = (e) => { 
+      $("#dlg-title-disp").textContent = e.target.value || 'Nieuw boek';
+      clearTimeout(timer); timer = setTimeout(autoFetchCover, 700); 
+    };
+    $("#faut").oninput = (e) => { 
+      $("#dlg-auth-disp").textContent = e.target.value || 'Geen auteur';
+      clearTimeout(timer); timer = setTimeout(autoFetchCover, 700); 
+    };
+ } else {
+    $("#ftit").oninput = () => { clearTimeout(timer); timer = setTimeout(autoFetchCover, 700); };
+    $("#faut").oninput = () => { clearTimeout(timer); timer = setTimeout(autoFetchCover, 700); };
+ }
+ 
+ const autoFetchCover = async () => {
+   const t = $("#ftit").value.trim();
+   const a = $("#faut").value.trim();
+   if (t.length < 3) return;
+   
+   $("#cprev").innerHTML = `<small style="color:var(--mut)">Zoeken naar kaften via Open Library...</small>`;
+   
+   try {
+     const query = encodeURIComponent(t + (a ? ' ' + a : ''));
+     const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=15`);
+     const data = await res.json();
+     
+     const covers = data.docs.filter(doc => doc.cover_i).map(doc => doc.cover_i);
+     const uniqueCovers = [...new Set(covers)].slice(0, 6);
+     
+     if (uniqueCovers.length > 0) {
+       let html = `<small style="display:block;color:var(--acc2);margin-bottom:6px">Kies de juiste kaft:</small><div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">`;
+       
+       uniqueCovers.forEach((coverId, idx) => {
+         const url = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+         const bColor = idx === 0 ? 'var(--acc)' : 'transparent';
+         if (idx === 0) {
+             $("#hc").value = url;
+             if (!isNew) {
+                 $("#dlg-cv-img").src = url;
+                 $("#dlg-cv-img").style.display = 'block';
+             }
+         }
+         
+         html += `<img src="${url}" data-url="${url}" class="c-opt" style="height:90px;border-radius:4px;cursor:pointer;border:3px solid ${bColor};transition:border-color .2s;flex:none">`;
+       });
+       html += `</div>`;
+       $("#cprev").innerHTML = html;
+
+       document.querySelectorAll('.c-opt').forEach(img => {
+         img.onclick = (e) => {
+           document.querySelectorAll('.c-opt').forEach(el => el.style.borderColor = 'transparent'); 
+           e.target.style.borderColor = 'var(--acc)'; 
+           $("#hc").value = e.target.dataset.url; 
+           if (!isNew) {
+               $("#dlg-cv-img").src = e.target.dataset.url;
+               $("#dlg-cv-img").style.display = 'block';
+           }
+         };
+       });
+     } else {
+       $("#cprev").innerHTML = `<small style="color:var(--mut)">Geen kaften gevonden in Open Library. Upload er zelf een.</small>`;
+     }
+   } catch(e) {
+     $("#cprev").innerHTML = `<small style="color:var(--mut)">Fout bij zoeken. Probeer zelf een foto te uploaden.</small>`;
+   }
+ };
+
+ $("#f").onsubmit=e=>{
+  const v=e.submitter.value;
+  if(v==="x")return;
+  
+  if(v==="del"){
+    S.books=S.books.filter(x=>x.id!==id);
+    if(spot===id)spot=null;
+  } else {
+    const d=Object.fromEntries(new FormData($("#f")));
+    if(d.status==="uit"&&!d.finished)d.finished=iso(new Date());
+    
+    if(!isNew) {
+       Object.assign(b,d);
+    } else {
+       S.books.push({id:uid(),...d});
+    }
+  }
+  save();render();
+ };
+ 
+ const rs=(fid,name,prevId)=>{$(fid).onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const k=Math.min(1,500/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=im.width*k;c.height=im.height*k;c.getContext("2d").drawImage(im,0,0,c.width,c.height);const b64 = c.toDataURL("image/jpeg",.8);$("#f").elements[name].value=b64;if(prevId)$(prevId).innerHTML=`<small style="display:block;color:var(--mut)">Eigen afbeelding ingesteld.</small>`;if(!isNew && name==='coverImg'){$("#dlg-cv-img").src=b64;$("#dlg-cv-img").style.display='block';}};im.src=URL.createObjectURL(f)}};
+ rs("#fs","spineImg");rs("#fc","coverImg","#cprev");
+ $("#dlg").showModal()}
+
+const K=["title","author","series","num","status","format","pages","rating","finished","price","notes"];
+function exportCsv(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
+ const t=[K.join(",")].concat(S.books.map(b=>K.map(k=>q(b[k])).join(","))).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([t],{type:"text/csv"}));a.download="leeshoek.csv";a.click()}
+function parse(t){const r=[];let row=[],c="",q=false;for(let i=0;i<t.length;i++){const ch=t[i];
+ if(q){if(ch=='"'){if(t[i+1]=='"'){c+='"';i++}else q=false}else c+=ch}
+ else if(ch=='"')q=true;else if(ch==","){row.push(c);c=""}else if(ch=="\n"){row.push(c);r.push(row);row=[];c=""}else if(ch!="\r")c+=ch}
+ if(c||row.length){row.push(c);r.push(row)}return r}
+function importCsv(e){const f=e.target.files[0];if(!f)return;const rd=new FileReader();
+ rd.onload=()=>{const [h,...rows]=parse(rd.result);const idx=h.map(x=>x.trim().toLowerCase());
+  rows.filter(r=>r[0]).forEach(r=>{const o={id:uid(),status:"wil",format:"Paperback"};idx.forEach((k,i)=>{if(K.includes(k)&&r[i]!=="")o[k]=r[i]});if(o.title)S.books.push(o)});
+  save();render()};rd.readAsText(f)}
+
+$("#nav").onclick=e=>{const b=e.target.closest("[data-v]");if(b){view=b.dataset.v;q="";render()}};
+let mini=innerWidth<600;try{const v=localStorage.getItem("lh-side");if(v!==null)mini=v==="1"}catch(e){}
+const applySide=()=>{$("#side").classList.toggle("min",mini);$("#tog").setAttribute("aria-expanded",String(!mini))};
+$("#tog").onclick=()=>{mini=!mini;applySide();try{localStorage.setItem("lh-side",mini?"1":"0")}catch(e){}};
+applySide();
+render();
+
+/* ========== OPSTARTEN & AUTOMATISCH VERBONDEN BLIJVEN ========== */
+(async function boot() {
+  if (initSupabase()) {
+    const { data } = await sb.auth.getSession();
+    if (data?.session?.user) {
+      await loadCloudProfile(data.session.user);
+    }
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        currentUser = null;
+        cloudProfile = null;
+        lastCloudUpdatedAt = null;
+        syncStatus = "offline";
+        loadLocalState();
+        applyTheme(getPrefs().theme);
+        render();
+      }
+    });
+    // Haal nieuwste wijzigingen op wanneer je terugkeert naar de app (bijv. van pc naar telefoon)
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && currentUser && syncStatus !== "syncing") {
+        loadCloudProfile(currentUser, { onlyIfNewer: true });
+      }
+    });
+  }
+})();
+</script></body></html>
