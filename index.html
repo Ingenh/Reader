@@ -913,6 +913,12 @@ dialog.edit-mode form { display: flex; flex-direction: column; max-height: 85vh;
 .hgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .hgrid .now{grid-column:span 2}.hgrid .wide{grid-column:1/-1}
 @media(max-width:700px){.hgrid .now{grid-column:auto}}
+  .now-list{display:flex;flex-direction:column;gap:16px;margin-top:10px}
+.now-item{display:flex;gap:16px;align-items:center}
+.now-item + .now-item{padding-top:16px;border-top:1px solid var(--line)}
+.now-cv{flex:none;width:92px;aspect-ratio:2/3;border-radius:4px 8px 8px 4px;box-shadow:inset 5px 0 rgba(0,0,0,.25),0 6px 16px rgba(0,0,0,.4);padding:8px;font-size:12px;font-weight:700;line-height:1.2;color:#fff;overflow:hidden;cursor:pointer;display:flex;align-items:flex-end}
+.now-info{flex:1;min-width:0}
+@media(max-width:480px){.now-cv{width:76px}}
 .pbar{height:10px;background:var(--line);border-radius:9px;overflow:hidden;margin:10px 0}.pbar i{display:block;height:100%;background:var(--acc)}
 .tabs,.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
 .tabs button,.chips button{border:1px solid var(--line);background:none;border-radius:999px;padding:6px 14px;cursor:pointer}
@@ -2174,12 +2180,26 @@ function home(){
  const rd=S.books.filter(b=>b.status==="lees"),b=rd[0],s=streak(),y=yr(),dn=doneBooks(y).length,set=allDays(),h=new Date().getHours();
  const g=h<6?"Goedenacht":h<12?"Goedemorgen":h<18?"Goedemiddag":"Goedenavond";
  const nm=acc?esc(firstName(acc.name)):"lezer";
- const prog=b&&pg(b)?Math.min(100,Math.round((+b.page||0)/pg(b)*100)):0;
- let c="",d=new Date();d.setDate(d.getDate()-34);
- for(let i=0;i<35;i++){c+=`<i class="${set.has(iso(d))?"d":""}"></i>`;d.setDate(d.getDate()+1)}
- const tbr=S.books.filter(x=>x.status==="wil");
- const now=b?`<h3>${esc(b.title)}</h3><p>${esc(b.author)}${pg(b)?` · ${pg(b)} p`:""}</p><div class="pbar"><i style="width:${prog}%"></i></div><p class="mono">p. ${+b.page||0}${pg(b)?` van ${pg(b)} · ${prog}%`:""}</p><button class="btn" data-sess="${b.id}">Pagina's loggen</button> <button class="btn ghost" data-edit="${b.id}">Bewerken</button>`:`<p>Je leest nu niets. Zet een boek op Bezig in je Library.</p><button class="btn" data-go="library">Naar Library</button>`;
- return`<h2 class="pg">${g}, ${nm}</h2><div class="hgrid">
+const renderNowBook = bk => {
+   const pr = bk && pg(bk) ? Math.min(100, Math.round((+bk.page || 0) / pg(bk) * 100)) : 0;
+   return `<div class="now-item">
+     <div class="now-cv" data-edit="${bk.id}" role="button" tabindex="0" title="${esc(bk.title)}" style="background:${bg(bk)}">${cvh(bk)}</div>
+     <div class="now-info">
+       <h3>${esc(bk.title)}</h3>
+       <p style="margin:2px 0 8px">${esc(bk.author)}${pg(bk) ? ` · ${pg(bk)} p` : ""}</p>
+       <div class="pbar"><i style="width:${pr}%"></i></div>
+       <p class="mono">p. ${+bk.page || 0}${pg(bk) ? ` van ${pg(bk)} · ${pr}%` : ""}</p>
+       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+         <button class="btn" data-sess="${bk.id}">Pagina's loggen</button>
+         <button class="btn ghost" data-edit="${bk.id}">Bewerken</button>
+       </div>
+     </div>
+   </div>`;
+ };
+ const now = rd.length
+   ? `<div class="now-list">${rd.map(renderNowBook).join("")}</div>`
+   : `<p>Je leest nu niets. Zet een boek op Bezig in je Library.</p><button class="btn" data-go="library">Naar Library</button>`;
+  return`<h2 class="pg">${g}, ${nm}</h2><div class="hgrid">
  <div class="card dark now"><p class="mono">Nu aan het lezen · ${rd.length}</p>${now}</div>
  <div class="card"><p class="mono">Streak</p><div class="big">${s.n}</div><p>dagen op rij · vrije dagen gebruikt ${s.fr}/${s.maxFree}</p><div class="cal">${c}</div></div>
  <div class="card"><p class="mono">${y} challenge</p><div class="big">${dn}<small> / ${S.goal}</small></div><div class="pbar"><i style="width:${Math.min(100,dn/S.goal*100)}%"></i></div><button class="btn ghost" data-go="challenge">Challenge</button></div>
