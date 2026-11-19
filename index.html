@@ -2488,66 +2488,7 @@ function bind(){
 
  if (view === "shelves" || view === "library") bindDragDrop();
 }
-const makeBookKey = (title, author) => {
-  const norm = s => String(s || "")
-    .toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-  return `${norm(title)}__${norm(author)}`;
-};
 
-async function publishSharedCover(book) {
-  if (!sb || !currentUser || !book || !book.title) return;
-  const key = makeBookKey(book.title, book.author);
-  if (!key || key === "__") return;
-
-  const isCustomImg = v => typeof v === "string" && v.length > 0 && !v.includes("openlibrary.org");
-  const coverUrl = isCustomImg(book.coverImg) ? book.coverImg : "";
-  const spineUrl = isCustomImg(book.spineImg) ? book.spineImg : "";
-  if (!coverUrl && !spineUrl) return;
-
-  try {
-    const { data: existing } = await sb
-      .from("shared_book_covers")
-      .select("cover_url, spine_url")
-      .eq("book_key", key)
-      .maybeSingle();
-
-    const payload = {
-      book_key: key,
-      title: book.title.trim(),
-      author: (book.author || "").trim(),
-      cover_url: coverUrl || existing?.cover_url || "",
-      spine_url: spineUrl || existing?.spine_url || "",
-      uploaded_by: currentUser.id,
-      updated_at: new Date().toISOString()
-    };
-
-    await sb.from("shared_book_covers").upsert(payload, { onConflict: "book_key" });
-  } catch (err) {
-    console.error("Gedeelde kaft opslaan mislukt:", err);
-  }
-}
-
-async function fetchSharedCovers(title, author) {
-  if (!sb || !title) return [];
-  const key = makeBookKey(title, author);
-  const normTitle = title.toLowerCase().trim();
-  try {
-    let query = sb.from("shared_book_covers").select("title, author, cover_url, spine_url");
-    if (author && author.trim()) {
-      query = query.eq("book_key", key);
-    } else {
-      query = query.ilike("title", `%${normTitle}%`);
-    }
-    const { data, error } = await query.limit(6);
-    if (error || !data) return [];
-    return data.filter(r => r.cover_url || r.spine_url);
-  } catch (err) {
-    return [];
-  }
-}
 function edit(id){
  const defFmt = getPrefs().defaultFormat || "Paperback";
  let b = {status:"wil",format:defFmt};
@@ -2674,80 +2615,57 @@ function edit(id){
  }
  
  const autoFetchCover = async () => {
-  const t = $("#ftit").value.trim();
-  const a = $("#faut").value.trim();
-  if (t.length < 3) return;
+   const t = $("#ftit").value.trim();
+   const a = $("#faut").value.trim();
+   if (t.length < 3) return;
+   
+   $("#cprev").innerHTML = `<small style="color:var(--mut)">Zoeken naar kaften via Open Library...</small>`;
+   
+   try {
+     const query = encodeURIComponent(t + (a ? ' ' + a : ''));
+     const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=15`);
+     const data = await res.json();
+     
+     const covers = data.docs.filter(doc => doc.cover_i).map(doc => doc.cover_i);
+     const uniqueCovers = [...new Set(covers)].slice(0, 6);
+     
+     if (uniqueCovers.length > 0) {
+       let html = `<small style="display:block;color:var(--acc2);margin-bottom:6px">Kies de juiste kaft:</small><div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">`;
+       
+       uniqueCovers.forEach((coverId, idx) => {
+         const url = `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`;
+         const bColor = idx === 0 ? 'var(--acc)' : 'transparent';
+         if (idx === 0) {
+             $("#hc").value = url;
+             if (!isNew) {
+                 $("#dlg-cv-img").src = url;
+                 $("#dlg-cv-img").style.display = 'block';
+             }
+         }
+         
+         html += `<img src="${url}" data-url="${url}" class="c-opt" style="height:90px;border-radius:4px;cursor:pointer;border:3px solid ${bColor};transition:border-color .2s;flex:none">`;
+       });
+       html += `</div>`;
+       $("#cprev").innerHTML = html;
 
-  $("#cprev").innerHTML = `<small style="color:var(--mut)">Zoeken naar kaften...</small>`;
-
-  let sharedRows = [];
-  let covers = [];
-
-  try {
-    sharedRows = await fetchSharedCovers(t, a);
-  } catch (e) {
-    sharedRows = [];
-  }
-
-  try {
-    const query = encodeURIComponent(t + (a ? " " + a : ""));
-    const res = await fetch(`https://openlibrary.org/search.json?q=${query}&limit=15`);
-    const data = await res.json();
-    covers = (data.docs || []).filter(doc => doc.cover_i).map(doc => doc.cover_i);
-  } catch (e) {
-    covers = [];
-  }
-
-  const sharedCovers = sharedRows.map(r => r.cover_url).filter(Boolean);
-  const openLibUrls = [...new Set(covers)].map(coverId => `https://covers.openlibrary.org/b/id/${coverId}-M.jpg`);
-  const uniqueCovers = [...new Set([...sharedCovers, ...openLibUrls])].slice(0, 6);
-
-  if (uniqueCovers.length > 0) {
-    let html = `<small style="display:block;color:var(--acc2);margin-bottom:6px">Kies de juiste kaft:</small><div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">`;
-
-    uniqueCovers.forEach((url, idx) => {
-      const bColor = idx === 0 ? "var(--acc)" : "transparent";
-      const chosenRow = sharedRows.find(r => r.cover_url === url);
-
-      if (idx === 0) {
-        $("#hc").value = url;
-        if (chosenRow && chosenRow.spine_url && $("#f").elements["spineImg"]) {
-          $("#f").elements["spineImg"].value = chosenRow.spine_url;
-        }
-        if (!isNew) {
-          $("#dlg-cv-img").src = url;
-          $("#dlg-cv-img").style.display = "block";
-        }
-      }
-
-      html += `<img src="${url}" data-url="${url}" class="c-opt" style="height:90px;border-radius:4px;cursor:pointer;border:3px solid ${bColor};transition:border-color .2s;flex:none">`;
-    });
-
-    html += `</div>`;
-    $("#cprev").innerHTML = html;
-
-    document.querySelectorAll(".c-opt").forEach(img => {
-      img.onclick = (e) => {
-        const chosenUrl = e.target.dataset.url;
-        document.querySelectorAll(".c-opt").forEach(el => el.style.borderColor = "transparent");
-        e.target.style.borderColor = "var(--acc)";
-        $("#hc").value = chosenUrl;
-
-        const chosenRow = sharedRows.find(r => r.cover_url === chosenUrl);
-        if (chosenRow && chosenRow.spine_url && $("#f").elements["spineImg"]) {
-          $("#f").elements["spineImg"].value = chosenRow.spine_url;
-        }
-
-        if (!isNew) {
-          $("#dlg-cv-img").src = chosenUrl;
-          $("#dlg-cv-img").style.display = "block";
-        }
-      };
-    });
-  } else {
-    $("#cprev").innerHTML = `<small style="color:var(--mut)">Geen kaften gevonden. Upload er zelf een.</small>`;
-  }
-};
+       document.querySelectorAll('.c-opt').forEach(img => {
+         img.onclick = (e) => {
+           document.querySelectorAll('.c-opt').forEach(el => el.style.borderColor = 'transparent'); 
+           e.target.style.borderColor = 'var(--acc)'; 
+           $("#hc").value = e.target.dataset.url; 
+           if (!isNew) {
+               $("#dlg-cv-img").src = e.target.dataset.url;
+               $("#dlg-cv-img").style.display = 'block';
+           }
+         };
+       });
+     } else {
+       $("#cprev").innerHTML = `<small style="color:var(--mut)">Geen kaften gevonden in Open Library. Upload er zelf een.</small>`;
+     }
+   } catch(e) {
+     $("#cprev").innerHTML = `<small style="color:var(--mut)">Fout bij zoeken. Probeer zelf een foto te uploaden.</small>`;
+   }
+ };
 
  $("#f").onsubmit=e=>{
   const v=e.submitter.value;
@@ -2760,14 +2678,12 @@ function edit(id){
     const d=Object.fromEntries(new FormData($("#f")));
     if(d.status==="uit"&&!d.finished)d.finished=iso(new Date());
     
-  if(!isNew) {
-   Object.assign(b,d);
-   publishSharedCover(b);
-} else {
-   const newBook = {id:uid(),...d};
-   S.books.push(newBook);
-   publishSharedCover(newBook);
-}
+    if(!isNew) {
+       Object.assign(b,d);
+    } else {
+       S.books.push({id:uid(),...d});
+    }
+  }
   save();render();
  };
  
